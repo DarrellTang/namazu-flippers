@@ -17,7 +17,7 @@ Deliver a valid Dalamud plugin that loads in XIV Launcher, responds to the `/nfl
 - **D-01:** Display name: "Namazu Flippers"
 - **D-02:** Internal name / namespace / .csproj / .sln: `NamazuFlippers`
 - **D-03:** Chat command: `/nflip`
-- **D-04:** GitHub repo: `darrell-tang-consulting/namazu-flippers`
+- **D-04:** GitHub repo: `DarrellTang/namazu-flippers`
 
 ### Configuration storage
 - **D-05:** Use Dalamud's built-in config serialization (`DalamudPluginInterface.SavePluginConfig<T>()`), not custom JSON
