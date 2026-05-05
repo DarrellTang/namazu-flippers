@@ -5,13 +5,13 @@ namespace NamazuFlippers;
 /// <summary>
 /// Plugin configuration — all settings for the Namazu Flippers arbitrage workflow.
 /// Persisted automatically by Dalamud's built-in JSON serialization via
-/// <see cref="Dalamud.Plugin.DalamudPluginInterface.GetPluginConfig{T}"/> and
-/// <see cref="Dalamud.Plugin.DalamudPluginInterface.SavePluginConfig{T}"/>.
-/// 
+/// <see cref="Dalamud.Plugin.IDalamudPluginInterface.GetPluginConfig"/> and
+/// <see cref="Dalamud.Plugin.IDalamudPluginInterface.SavePluginConfig"/>.
+///
 /// Corresponding requirements: CONF-01 through CONF-09.
 /// Configuration UI (ConfigWindow) is built in Phase 4.
 /// </summary>
-public class Configuration : IPluginConfig
+public class Configuration : IPluginConfiguration
 {
     // === Version (future migration support) ===
 

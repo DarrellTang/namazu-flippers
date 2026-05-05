@@ -1,55 +1,22 @@
-<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Dalamud.NET.Sdk/15.0.0">
 
   <PropertyGroup>
-    <TargetFramework>net8.0-windows</TargetFramework>
+    <TargetFramework>net10.0-windows</TargetFramework>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
     <AssemblyName>NamazuFlippers</AssemblyName>
     <RootNamespace>NamazuFlippers</RootNamespace>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <Platforms>x64</Platforms>
   </PropertyGroup>
 
-  <!-- Dalamud Library Path -->
+  <!-- Dalamud path: Windows uses XIVLauncher install, non-Windows/CI uses DALAMUD_HOME -->
   <PropertyGroup>
-    <DalamudLibPath Condition="'$(OS)' == 'Windows_NT'">$(APPDATA)\XIVLauncher\addon\Hooks\dev</DalamudLibPath>
-    <DalamudLibPath Condition="'$(OS)' != 'Windows_NT'">$(HOME)/.xlcore/dalamud/Hooks/dev</DalamudLibPath>
+    <DalamudLibPath>$(AppData)\XIVLauncher\addon\Hooks\dev\</DalamudLibPath>
   </PropertyGroup>
-
-  <!-- Dalamud References -->
-  <ItemGroup>
-    <Reference Include="Dalamud">
-      <HintPath>$(DalamudLibPath)\Dalamud.dll</HintPath>
-      <Private>false</Private>
-    </Reference>
-    <Reference Include="ImGui.NET">
-      <HintPath>$(DalamudLibPath)\ImGui.NET.dll</HintPath>
-      <Private>false</Private>
-    </Reference>
-    <Reference Include="Lumina">
-      <HintPath>$(DalamudLibPath)\Lumina.dll</HintPath>
-      <Private>false</Private>
-    </Reference>
-    <Reference Include="Lumina.Excel">
-      <HintPath>$(DalamudLibPath)\Lumina.Excel.dll</HintPath>
-      <Private>false</Private>
-    </Reference>
-  </ItemGroup>
-
-  <!-- Dalamud Linter -->
-  <ItemGroup>
-    <PackageReference Include="DalamudLinter" Version="1.0.0" PrivateAssets="all" />
-  </ItemGroup>
-
-  <!-- Dalamud Packager Target -->
-  <Target Name="PackagePlugin" AfterTargets="Build" Condition="'$(Configuration)' == 'Release'">
-    <DalamudPackager
-      ProjectDir="$(ProjectDir)"
-      OutputPath="$(OutputPath)"
-      AssemblyName="$(AssemblyName)"
-      MakeZip="true" />
-  </Target>
-
-  <UsingTask TaskName="DalamudPackager" AssemblyFile="$(DalamudLibPath)\DalamudPackager.dll" />
+  <PropertyGroup Condition="'$(OS)' != 'Windows_NT' OR '$(CI)' == 'true'">
+    <DalamudLibPath>$(DALAMUD_HOME)/</DalamudLibPath>
+  </PropertyGroup>
 
 </Project>

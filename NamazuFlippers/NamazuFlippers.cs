@@ -1,8 +1,8 @@
 using Dalamud.Game.Command;
-using Dalamud.IoC;
-using Dalamud.Logging;
+using Dalamud.Bindings.ImGui;
+using Dalamud.Interface;
 using Dalamud.Plugin;
-using ImGuiNET;
+using Dalamud.Plugin.Services;
 using System.Numerics;
 
 namespace NamazuFlippers;
@@ -18,23 +18,12 @@ public class NamazuFlippers : IDalamudPlugin
     /// </summary>
     private const string CommandName = "/nflip";
 
-    /// <summary>
-    /// Dalamud plugin interface for config, logging, and framework access.
-    /// </summary>
-    [PluginService]
-    public DalamudPluginInterface PluginInterface { get; init; } = null!;
+    private readonly IDalamudPluginInterface pluginInterface;
+    private readonly ICommandManager commandManager;
+    private readonly IPluginLog log;
 
     /// <summary>
-    /// Command manager for registering/removing chat commands.
-    /// </summary>
-    [PluginService]
-    public CommandManager CommandManager { get; init; } = null!;
-
-    /// <summary>
-    /// Plugin configuration with all settings (CONF-01 through CONF-09).
-    /// Loaded on startup via <see cref="DalamudPluginInterface.GetPluginConfig{T}"/>.
-    /// Saved on first-run home world confirm via <see cref="DalamudPluginInterface.SavePluginConfig{T}"/>.
-    /// Full ConfigWindow save-on-change will use the same pattern in Phase 4.
+    /// Plugin configuration — all CONF-01 through CONF-09 settings.
     /// </summary>
     public Configuration Configuration { get; set; }
 
@@ -57,9 +46,16 @@ public class NamazuFlippers : IDalamudPlugin
     /// <summary>
     /// Initializes the plugin, loads config, and registers the /nflip command.
     /// </summary>
-    public NamazuFlippers()
+    public NamazuFlippers(
+        IDalamudPluginInterface pluginInterface,
+        ICommandManager commandManager,
+        IPluginLog log)
     {
-        Configuration = PluginInterface.GetPluginConfig<Configuration>() ?? new Configuration();
+        this.pluginInterface = pluginInterface;
+        this.commandManager = commandManager;
+        this.log = log;
+
+        Configuration = pluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
 
         // If home world is already set in persisted config, skip the first-run popup.
         if (!string.IsNullOrEmpty(Configuration.HomeWorld))
@@ -67,14 +63,14 @@ public class NamazuFlippers : IDalamudPlugin
             isFirstRun = false;
         }
 
-        CommandManager.AddHandler(CommandName, new CommandInfo(OnCommand)
+        commandManager.AddHandler(CommandName, new CommandInfo(OnCommand)
         {
             HelpMessage = "Toggle the Namazu Flippers daily arbitrage route window."
         });
 
-        PluginInterface.UiBuilder.Draw += OnDraw;
+        pluginInterface.UiBuilder.Draw += OnDraw;
 
-        PluginLog.Information("Namazu Flippers loaded. Use /nflip to get started.");
+        log.Information("Namazu Flippers loaded. Use /nflip to get started.");
     }
 
     /// <summary>
@@ -83,9 +79,9 @@ public class NamazuFlippers : IDalamudPlugin
     /// </summary>
     public void Dispose()
     {
-        PluginInterface.UiBuilder.Draw -= OnDraw;
-        CommandManager.RemoveHandler(CommandName);
-        PluginLog.Information("Namazu Flippers unloaded.");
+        pluginInterface.UiBuilder.Draw -= OnDraw;
+        commandManager.RemoveHandler(CommandName);
+        log.Information("Namazu Flippers unloaded.");
     }
 
     /// <summary>
@@ -114,7 +110,6 @@ public class NamazuFlippers : IDalamudPlugin
 
     /// <summary>
     /// Renders the first-run home world selection popup.
-    /// Called once when /nflip is used and no home world is configured.
     /// After the user confirms, the home world is saved and the popup dismisses.
     /// </summary>
     private void DrawFirstRunPopup()
@@ -128,7 +123,7 @@ public class NamazuFlippers : IDalamudPlugin
             {
                 ImGui.Text("Enter your home world to get started:");
 
-                // Input field for home world name (max 32 chars — longest world name is ~20)
+                // Input field for home world name (max 32 chars)
                 pendingHomeWorld = pendingHomeWorld.Length > 32
                     ? pendingHomeWorld[..32]
                     : pendingHomeWorld;
@@ -137,15 +132,15 @@ public class NamazuFlippers : IDalamudPlugin
                 ImGui.Spacing();
 
                 // Confirm button — saves home world and dismisses popup
-                bool confirmPressed = ImGui.Button("Confirm", new System.Numerics.Vector2(120, 0));
+                bool confirmPressed = ImGui.Button("Confirm", new Vector2(120, 0));
 
                 if (confirmPressed && !string.IsNullOrWhiteSpace(pendingHomeWorld))
                 {
                     Configuration.HomeWorld = pendingHomeWorld.Trim();
-                    PluginInterface.SavePluginConfig(Configuration);
+                    pluginInterface.SavePluginConfig(Configuration);
                     isFirstRun = false;
 
-                    PluginLog.Information($"Home world set to: {Configuration.HomeWorld}");
+                    log.Information($"Home world set to: {Configuration.HomeWorld}");
 
                     ImGui.CloseCurrentPopup();
                 }
