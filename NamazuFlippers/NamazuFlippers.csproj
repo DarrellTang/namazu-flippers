@@ -1,0 +1,55 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <AssemblyName>NamazuFlippers</AssemblyName>
+    <RootNamespace>NamazuFlippers</RootNamespace>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <!-- Dalamud Library Path -->
+  <PropertyGroup>
+    <DalamudLibPath Condition="'$(OS)' == 'Windows_NT'">$(APPDATA)\XIVLauncher\addon\Hooks\dev</DalamudLibPath>
+    <DalamudLibPath Condition="'$(OS)' != 'Windows_NT'">$(HOME)/.xlcore/dalamud/Hooks/dev</DalamudLibPath>
+  </PropertyGroup>
+
+  <!-- Dalamud References -->
+  <ItemGroup>
+    <Reference Include="Dalamud">
+      <HintPath>$(DalamudLibPath)\Dalamud.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="ImGui.NET">
+      <HintPath>$(DalamudLibPath)\ImGui.NET.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Lumina">
+      <HintPath>$(DalamudLibPath)\Lumina.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Lumina.Excel">
+      <HintPath>$(DalamudLibPath)\Lumina.Excel.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+  <!-- Dalamud Linter -->
+  <ItemGroup>
+    <PackageReference Include="DalamudLinter" Version="1.0.0" PrivateAssets="all" />
+  </ItemGroup>
+
+  <!-- Dalamud Packager Target -->
+  <Target Name="PackagePlugin" AfterTargets="Build" Condition="'$(Configuration)' == 'Release'">
+    <DalamudPackager
+      ProjectDir="$(ProjectDir)"
+      OutputPath="$(OutputPath)"
+      AssemblyName="$(AssemblyName)"
+      MakeZip="true" />
+  </Target>
+
+  <UsingTask TaskName="DalamudPackager" AssemblyFile="$(DalamudLibPath)\DalamudPackager.dll" />
+
+</Project>
