@@ -31,7 +31,10 @@ public class NamazuFlippers : IDalamudPlugin
     public CommandManager CommandManager { get; init; } = null!;
 
     /// <summary>
-    /// Plugin configuration. Placeholder stub — full Configuration class added in Plan 01-02.
+    /// Plugin configuration with all settings (CONF-01 through CONF-09).
+    /// Loaded on startup via <see cref="DalamudPluginInterface.GetPluginConfig{T}"/>.
+    /// Saved on first-run home world confirm via <see cref="DalamudPluginInterface.SavePluginConfig{T}"/>.
+    /// Full ConfigWindow save-on-change will use the same pattern in Phase 4.
     /// </summary>
     public Configuration Configuration { get; set; }
 
@@ -151,23 +154,4 @@ public class NamazuFlippers : IDalamudPlugin
             }
         }
     }
-}
-
-/// <summary>
-/// Placeholder configuration stub used until the full Configuration class
-/// is implemented in Plan 01-02. Provides the HomeWorld property for the
-/// first-run popup.
-/// </summary>
-public class Configuration : IPluginConfig
-{
-    /// <summary>
-    /// Config version for future migration support.
-    /// </summary>
-    public int Version { get; set; } = 1;
-
-    /// <summary>
-    /// Player's home world for price comparisons and market board listings.
-    /// Empty string triggers the first-run popup.
-    /// </summary>
-    public string HomeWorld { get; set; } = "";
 }
