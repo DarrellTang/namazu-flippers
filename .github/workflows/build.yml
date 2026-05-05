@@ -1,0 +1,40 @@
+name: Build
+
+# ⚠ Currently verifies .NET restore and C# syntax only.
+# Full `dotnet build` requires Dalamud assemblies from XIVLauncher
+# which are not available on GitHub Actions runners.
+#
+# To enable full builds on CI, either:
+# 1. Add a step to download Dalamud dev dependencies from
+#    https://github.com/goatcorp/Dalamud/releases
+# 2. Build on a self-hosted Windows runner with XIVLauncher installed
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'NamazuFlippers/**'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'NamazuFlippers/**'
+
+jobs:
+  restore:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore NamazuFlippers/NamazuFlippers.csproj
+
+      - name: Check syntax (no Dalamud refs)
+        run: |
+          echo "Full build requires Dalamud assemblies."
+          echo "Install XIVLauncher on a Windows machine and run: dotnet build"
+          echo "NuGet packages restored successfully."
