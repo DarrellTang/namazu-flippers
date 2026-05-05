@@ -6,7 +6,7 @@ Build a Dalamud plugin from scratch that connects to the Saddlebag Exchange API,
 
 ## Phases
 
-- [ ] **Phase 1: Plugin Shell & Configuration** - Dalamud project scaffold, manifest, config persistence
+- [x] **Phase 1: Plugin Shell & Configuration** - Dalamud project scaffold, manifest, config persistence
 - [ ] **Phase 2: API Integration** - HTTP client, endpoint models, rate limiter
 - [ ] **Phase 3: Scan Engine & Route Optimizer** - API call orchestration, result ranking, server routing
 - [ ] **Phase 4: Core UI** - DailyRouteWindow with route display, buy/list checkboxes, profit tally
@@ -133,7 +133,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Plugin Shell & Configuration | 1/2 | In Progress | - |
+| 1. Plugin Shell &amp; Configuration | 2/2 | Complete | 2026-05-05 |
 | 2. API Integration | 0/2 | Not started | - |
 | 3. Scan Engine & Route Optimizer | 0/2 | Not started | - |
 | 4. Core UI | 0/3 | Not started | - |
