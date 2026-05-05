@@ -5,10 +5,12 @@ on:
     branches: [main]
     paths:
       - 'NamazuFlippers/**'
+      - '.github/workflows/**'
   pull_request:
     branches: [main]
     paths:
       - 'NamazuFlippers/**'
+  workflow_dispatch:
 
 jobs:
   build:
