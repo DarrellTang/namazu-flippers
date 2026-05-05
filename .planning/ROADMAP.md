@@ -26,11 +26,11 @@ Build a Dalamud plugin from scratch that connects to the Saddlebag Exchange API,
   3. Home world prompt appears on first run and setting persists
   4. All configuration values persist across game sessions
   5. Plugin disposes cleanly (no crashes on logout/reload)
-**Plans**: 2 plans
+**Plans**: 2 plans (2 planned)
 
 Plans:
-- [ ] 01-01: Scaffold Dalamud plugin project (manifest, entry point, build system)
-- [ ] 01-02: Implement configuration system with persistence
+- [x] 01-01: Scaffold Dalamud plugin project (manifest, entry point, build system)
+- [x] 01-02: Implement configuration system with persistence
 
 ### Phase 2: API Integration
 **Goal**: Plugin can call Saddlebag Exchange API and receive typed responses
@@ -133,7 +133,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Plugin Shell & Configuration | 0/2 | Not started | - |
+| 1. Plugin Shell & Configuration | 2/2 | Planned | - |
 | 2. API Integration | 0/2 | Not started | - |
 | 3. Scan Engine & Route Optimizer | 0/2 | Not started | - |
 | 4. Core UI | 0/3 | Not started | - |
