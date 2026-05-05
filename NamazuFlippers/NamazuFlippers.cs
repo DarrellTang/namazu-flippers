@@ -109,6 +109,38 @@ public class NamazuFlippers : IDalamudPlugin
     }
 
     /// <summary>
+    /// All 85 FFXIV worlds as of Dawntrail 7.x. Used to validate home world input.
+    /// A world picker dropdown will replace this validation in Phase 4 (ConfigWindow).
+    /// </summary>
+    private static readonly HashSet<string> KnownWorlds = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "Adamantoise", "Aegis", "Alexander", "Alpha", "Anima", "Asura", "Atomos",
+        "Bahamut", "Balmung", "Behemoth", "Belias", "Bismarck", "Brynhildr",
+        "Cactuar", "Carbuncle", "Cerberus", "Chocobo", "Coeurl", "Cuchulainn",
+        "Diabolos", "Durandal",
+        "Excalibur", "Exodus",
+        "Faerie", "Famfrit", "Fenrir",
+        "Garuda", "Gilgamesh", "Goblin", "Golem", "Gungnir",
+        "Hades", "Halicarnassus", "Hyperion",
+        "Ifrit", "Ixion",
+        "Jenova",
+        "Kraken", "Kujata",
+        "Lamia", "Leviathan", "Lich", "Louisoix",
+        "Maduin", "Malboro", "Mandragora", "Marilith", "Masamune", "Mateus",
+        "Midgardsormr", "Moogle",
+        "Odin", "Omega",
+        "Pandaemonium", "Phantom", "Phoenix",
+        "Rafflesia", "Ragnarok", "Raiden", "Ramuh", "Ravana", "Ridill",
+        "Sagittarius", "Sargatanas", "Sephirot", "Seraph", "Shinryu", "Shiva",
+        "Siren", "Sophia", "Spriggan",
+        "Tiamat", "Titan", "Tonberry", "Twintania", "Typhon",
+        "Ultima", "Ultros", "Unicorn",
+        "Valefor",
+        "Yojimbo",
+        "Zalera", "Zeromus", "Zodiark", "Zurvan",
+    };
+
+    /// <summary>
     /// Renders the first-run home world selection popup.
     /// After the user confirms, the home world is saved and the popup dismisses.
     /// </summary>
@@ -136,13 +168,23 @@ public class NamazuFlippers : IDalamudPlugin
 
                 if (confirmPressed && !string.IsNullOrWhiteSpace(pendingHomeWorld))
                 {
-                    Configuration.HomeWorld = pendingHomeWorld.Trim();
-                    pluginInterface.SavePluginConfig(Configuration);
-                    isFirstRun = false;
+                    var trimmed = pendingHomeWorld.Trim();
+                    // Basic validation: real world names are 3-20 chars
+                    if (!KnownWorlds.Contains(trimmed))
+                    {
+                        ImGui.TextColored(new Vector4(1, 0.3f, 0.3f, 1),
+                            $"\"{trimmed}\" is not a recognized world.");
+                    }
+                    else
+                    {
+                        Configuration.HomeWorld = trimmed;
+                        pluginInterface.SavePluginConfig(Configuration);
+                        isFirstRun = false;
 
-                    log.Information($"Home world set to: {Configuration.HomeWorld}");
+                        log.Information($"Home world set to: {Configuration.HomeWorld}");
 
-                    ImGui.CloseCurrentPopup();
+                        ImGui.CloseCurrentPopup();
+                    }
                 }
 
                 ImGui.EndPopup();

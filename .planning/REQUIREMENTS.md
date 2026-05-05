@@ -14,13 +14,13 @@
 ### Configuration
 
 - [x] **CONF-01**: User can set home world (first-run prompt, persisted)
-- [x] **CONF-02**: User can set profit thresholds: minimum ROI%, minimum profit per item, minimum average home price
-- [x] **CONF-03**: User can set velocity floor (minimum sales per week)
-- [x] **CONF-04**: User can toggle region-wide search (all DCs vs local DC)
-- [x] **CONF-05**: User can toggle category filters (furniture, glamour, collectibles, consumables, vendor items)
-- [x] **CONF-06**: User can toggle vendor item inclusion and out-of-stock items
-- [x] **CONF-07**: User can set max items per session and max servers to visit
-- [x] **CONF-08**: User can set scan cache duration (hours)
+- [~] **CONF-02**: User can set profit thresholds (model ready; ConfigWindow UI in Phase 4)
+- [~] **CONF-03**: User can set velocity floor (model ready; ConfigWindow UI in Phase 4)
+- [~] **CONF-04**: User can toggle region-wide search (model ready; ConfigWindow UI in Phase 4)
+- [~] **CONF-05**: User can toggle category filters (model ready; ConfigWindow UI in Phase 4)
+- [~] **CONF-06**: User can toggle vendor/OOS items (model ready; ConfigWindow UI in Phase 4)
+- [~] **CONF-07**: User can set session caps (model ready; ConfigWindow UI in Phase 4)
+- [~] **CONF-08**: User can set cache duration (model ready; ConfigWindow UI in Phase 4)
 - [x] **CONF-09**: All settings persist across sessions
 
 ### API Integration
@@ -89,13 +89,13 @@
 | PLUG-02 | Phase 1 | Complete |
 | PLUG-03 | Phase 1 | Complete |
 | CONF-01 | Phase 1 | Complete |
-| CONF-02 | Phase 1 | Complete |
-| CONF-03 | Phase 1 | Complete |
-| CONF-04 | Phase 1 | Complete |
-| CONF-05 | Phase 1 | Complete |
-| CONF-06 | Phase 1 | Complete |
-| CONF-07 | Phase 1 | Complete |
-| CONF-08 | Phase 1 | Complete |
+| CONF-02 | Phase 1 | Model Ready |
+| CONF-03 | Phase 1 | Model Ready |
+| CONF-04 | Phase 1 | Model Ready |
+| CONF-05 | Phase 1 | Model Ready |
+| CONF-06 | Phase 1 | Model Ready |
+| CONF-07 | Phase 1 | Model Ready |
+| CONF-08 | Phase 1 | Model Ready |
 | CONF-09 | Phase 1 | Complete |
 | API-01 | Phase 2 | Pending |
 | API-02 | Phase 2 | Pending |
