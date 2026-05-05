@@ -12,9 +12,11 @@ See: .planning/PROJECT.md (updated 2026-05-04)
 Phase: 1 of 7 (Plugin Shell & Configuration)
 Plan: 0 of 2 in current phase
 Status: Ready to plan
-Last activity: 2026-05-04 — Project initialized via GSD auto-mode
+Last activity: 2026-05-04 — Phase 1 discussed, CONTEXT.md written
 
 Progress: [░░░░░░░░░░] 0%
+
+**Phase 1 decisions captured:** .planning/phases/01-plugin-shell/01-CONTEXT.md
 
 ## Performance Metrics
 
@@ -41,6 +43,10 @@ Progress: [░░░░░░░░░░] 0%
 Decisions are logged in PROJECT.md Key Decisions table.
 Recent decisions affecting current work:
 
+- Phase 1: Plugin named "Namazu Flippers" with `/nflip` chat command
+- Phase 1: Dalamud built-in config serialization (not custom JSON)
+- Phase 1: Minimal project scaffold, add folders per phase
+- Phase 1: Simple ImGui popup for first-run home world selection
 - Initialization: Use `/api/scan` as sole discovery endpoint (no multi-step pipeline)
 - Initialization: JSON file persistence over SQLite for session state
 - Initialization: OOS priority handled by scan params (`show_out_stock=true`)
@@ -56,6 +62,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-05-04 20:50
-Stopped at: Project initialization complete. All GSD artifacts created.
+Last session: 2026-05-04 21:15
+Stopped at: Phase 1 discuss complete. CONTEXT.md written, docs renamed to Namazu Flippers.
 Resume file: None

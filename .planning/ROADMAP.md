@@ -1,4 +1,4 @@
-# Roadmap: Saddlebag Arbitrage
+# Roadmap: Namazu Flippers
 
 ## Overview
 
@@ -22,7 +22,7 @@ Build a Dalamud plugin from scratch that connects to the Saddlebag Exchange API,
 **Requirements**: PLUG-01, PLUG-02, PLUG-03, CONF-01, CONF-02, CONF-03, CONF-04, CONF-05, CONF-06, CONF-07, CONF-08, CONF-09
 **Success Criteria** (what must be TRUE):
   1. Plugin appears in XIV Launcher plugin list and loads without errors
-  2. `/saddlebag` command opens and closes the plugin UI
+  2. `/nflip` command opens and closes the plugin UI
   3. Home world prompt appears on first run and setting persists
   4. All configuration values persist across game sessions
   5. Plugin disposes cleanly (no crashes on logout/reload)

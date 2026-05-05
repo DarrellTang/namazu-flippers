@@ -1,8 +1,8 @@
-# Saddlebag Arbitrage
+# Namazu Flippers
 
 ## What This Is
 
-A Dalamud plugin (XIV Launcher) for Final Fantasy XIV that automates daily cross-world market board arbitrage. The player opens the plugin, gets a ranked list of 5–10 items to flip across servers, follows a route-optimized shopping list, and completes a 15–20 minute session for consistent daily gil profit. Designed for minimal effort with maximal consistent return — not max-ROI hunting.
+A Dalamud plugin (XIV Launcher) for Final Fantasy XIV that automates daily cross-world market board arbitrage — named after the commerce-obsessed Namazu beast tribe. The player opens the plugin, gets a ranked list of 5–10 items to flip across servers, follows a route-optimized shopping list, and completes a 15–20 minute session for consistent daily gil profit. Designed for minimal effort with maximal consistent return — not max-ROI hunting.
 
 ## Core Value
 
@@ -72,11 +72,15 @@ Login → open plugin → see today's route → travel to server → buy items �
 
 | Decision | Rationale | Outcome |
 | -------- | --------- | ------- |
+| Plugin named "Namazu Flippers" with `/nflip` command | FFXIV-themed, memorable, short command for fast typing | Phase 1 |
+| Use Dalamud built-in config serialization | Standard Dalamud plugin pattern, less boilerplate than custom JSON | Phase 1 |
+| Minimal project scaffold in Phase 1 | Add folders (Core/, API/, etc.) as each phase needs them | Phase 1 |
+| Simple ImGui popup for first-run home world | Lightweight, appears once, consistent with eventual ConfigWindow | Phase 1 |
 | Use `/api/scan` as sole discovery endpoint | Combines velocity filtering, cross-server price comparison, OOS detection, vendor items, and ranking in one call | - Pending |
 | Build for daily session workflow (not constant monitoring) | User wants consistent daily profit, not max-ROI hunting | - Pending |
-| JSON file persistence over SQLite | Session state is simple (5–10 items, checkboxes); no query complexity needed | - Pending |
+| JSON file persistence for session state | Session state is simple (5–10 items, checkboxes); no query complexity needed | - Pending |
 | OOS priority built into scan params | `show_out_stock=true` surfaces zero-listing items without custom logic | - Pending |
 | Vendor items included by default | `include_vendor=true` catches NPC-purchased flips players overlook | - Pending |
 
 ---
-*Last updated: 2026-05-04 after initialization*
+*Last updated: 2026-05-04 after Phase 1 discussion*
