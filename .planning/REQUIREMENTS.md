@@ -7,9 +7,9 @@
 
 ### Plugin Shell
 
-- [ ] **PLUG-01**: Plugin loads in XIV Launcher with a valid Dalamud manifest (SaddlebagArbitrage.json)
-- [ ] **PLUG-02**: Plugin exposes a main command (`/saddlebag` or `/pbag`) to toggle the UI
-- [ ] **PLUG-03**: Plugin follows Dalamud lifecycle (constructor, Dispose) with proper cleanup
+- [x] **PLUG-01**: Plugin loads in XIV Launcher with a valid Dalamud manifest (SaddlebagArbitrage.json)
+- [x] **PLUG-02**: Plugin exposes a main command (`/saddlebag` or `/pbag`) to toggle the UI
+- [x] **PLUG-03**: Plugin follows Dalamud lifecycle (constructor, Dispose) with proper cleanup
 
 ### Configuration
 
