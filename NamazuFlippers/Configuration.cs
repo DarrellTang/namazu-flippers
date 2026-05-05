@@ -13,6 +13,19 @@ namespace NamazuFlippers;
 /// </summary>
 public class Configuration : IPluginConfiguration
 {
+    // === Named Category Presets ===
+    // These constants map to Saddlebag category/subcategory IDs.
+    // Application code should reference these presets, not raw IDs.
+    // See: https://github.com/ff14-advanced-market-search/saddlebag-with-pockets/wiki/Item-categories-ids-and-list
+
+    public static readonly int[] FurnitureIds = { 56, 65, 66, 67, 68, 69, 70, 71, 72, 81, 82 };
+    public static readonly int[] CollectibleIds = { 75, 80, 90 };
+    public static readonly int[] GlamourIds = { 1, 2, 3, 4, -5 };
+
+    /// <summary>Combined default filter: Furniture + Collectibles + Glamour.</summary>
+    public static readonly int[] DefaultCategoryFilters =
+        [..FurnitureIds, ..CollectibleIds, ..GlamourIds];
+
     // === Version (future migration support) ===
 
     /// <summary>
@@ -62,19 +75,15 @@ public class Configuration : IPluginConfiguration
     // === CONF-05: Category Filters ===
 
     /// <summary>
-    /// Category and subcategory IDs passed to the /api/scan endpoint.
-    /// Default: Furniture (56,65-72,81-82) + Collectibles (75,80,90) + Glamour (1-4,-5).
+    /// Category and subcategory IDs for /api/scan. Defaults to Furniture + Collectibles + Glamour.
+    /// ⚠ Mutable array — copy before exposing to untrusted code.
+    /// Use <see cref="DefaultCategoryFilters"/> or named presets (<see cref="FurnitureIds"/>, etc.) in application code.
     /// </summary>
-    public int[] CategoryFilters { get; set; } =
-    {
-        56, 65, 66, 67, 68, 69, 70, 71, 72, 81, 82,  // Furniture
-        75, 80, 90,                                     // Collectibles
-        1, 2, 3, 4, -5                                  // Glamour
-    };
+    public int[] CategoryFilters { get; set; } = DefaultCategoryFilters;
 
     /// <summary>
-    /// Human-readable category labels matching the toggle states in ConfigWindow (Phase 4).
-    /// Used to render category toggles in the settings UI.
+    /// Human-readable category labels matching toggle states in ConfigWindow (Phase 4).
+    /// ⚠ Mutable array — copy before exposing to untrusted code.
     /// </summary>
     public string[] PreferredCategories { get; set; } = { "Furniture", "Collectibles", "Glamour" };
 
