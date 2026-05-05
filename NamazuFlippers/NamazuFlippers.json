@@ -1,0 +1,24 @@
+{
+  "Name": "Namazu Flippers",
+  "Author": "darrelltang",
+  "Punchline": "Daily cross-server arbitrage route \u2014 flip items, make gil.",
+  "Description": "Namazu Flippers connects to the Saddlebag Exchange API to find daily cross-server arbitrage opportunities. Get a route-optimized shopping list, travel between servers, buy low, sell high on your home world. One scan, one route, done in under 20 minutes.",
+  "InternalName": "NamazuFlippers",
+  "AssemblyVersion": "1.0.0.0",
+  "RepoUrl": "https://github.com/darrell-tang-consulting/namazu-flippers",
+  "ApplicableVersion": "any",
+  "DalamudApiLevel": 10,
+  "Tags": [
+    "arbitrage",
+    "market",
+    "gil",
+    "trading",
+    "cross-server"
+  ],
+  "IconUrl": "",
+  "LoadRequiredState": 0,
+  "LoadSync": false,
+  "LoadPriority": 0,
+  "CanUnloadAsync": false,
+  "PinnedSubsystem": "NamazuFlippers"
+}
