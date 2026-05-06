@@ -54,10 +54,19 @@ public class NamazuFlippers : IDalamudPlugin
     private void OnCommand(string command, string arguments)
     {
         isVisible = !isVisible;
+        log.Information(isVisible
+            ? "Namazu Flippers UI opened."
+            : "Namazu Flippers UI closed.");
+
+        // Placeholder — DailyRouteWindow and ConfigWindow are built in Phase 4.
+        if (isVisible && string.IsNullOrEmpty(Configuration.HomeWorld))
+            log.Information("Set your home world in the popup to get started.");
     }
 
     private void OnDraw()
     {
         firstRunWindow.Draw();
+
+        // Future: routeWindow.Draw(), configWindow.Draw(), etc.
     }
 }
