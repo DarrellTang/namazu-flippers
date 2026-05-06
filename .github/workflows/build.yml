@@ -56,5 +56,5 @@ jobs:
           name: Build ${{ github.run_number }}
           files: NamazuFlippers.zip
           draft: false
-          prerelease: true
+          prerelease: false
           generate_release_notes: true
