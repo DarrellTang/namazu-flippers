@@ -24,3 +24,6 @@ obj/
 # OS
 .DS_Store
 Thumbs.db
+
+# Troubleshooting: git index.lock tracking
+git-index-lock.log
