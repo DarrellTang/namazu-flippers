@@ -1,4 +1,4 @@
-name: Build
+name: Build & Release
 
 on:
   push:
@@ -21,6 +21,8 @@ jobs:
         working-directory: NamazuFlippers/
     env:
       DALAMUD_HOME: /tmp/dalamud
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v6
 
@@ -40,14 +42,19 @@ jobs:
       - name: Build
         run: dotnet build --no-restore --configuration Release --nologo
 
-      - name: Stage plugin for upload
+      - name: Package plugin
         run: |
-          mkdir -p ../dist/NamazuFlippers
-          cp bin/Release/NamazuFlippers.dll ../dist/NamazuFlippers/
-          cp NamazuFlippers.json ../dist/NamazuFlippers/
+          mkdir -p ../dist
+          cp bin/Release/NamazuFlippers.dll ../dist/
+          cp NamazuFlippers.json ../dist/
+          (cd ../dist && zip -r ../NamazuFlippers.zip .)
 
-      - name: Upload plugin artifact
-        uses: actions/upload-artifact@v4
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
         with:
-          name: NamazuFlippers
-          path: dist/NamazuFlippers/
+          tag_name: build-${{ github.run_number }}
+          name: Build ${{ github.run_number }}
+          files: NamazuFlippers.zip
+          draft: false
+          prerelease: true
+          generate_release_notes: true
