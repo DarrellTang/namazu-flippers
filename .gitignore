@@ -25,5 +25,5 @@ obj/
 .DS_Store
 Thumbs.db
 
-# Troubleshooting: git index.lock tracking
+# Troubleshooting log
 git-index-lock.log
