@@ -4,13 +4,13 @@ milestone: v1.0
 milestone_name: milestone
 status: completed
 stopped_at: Phase 2 context gathered
-last_updated: "2026-05-05"
-last_activity: 2026-05-05 — Phase 2 context gathered. Decisions captured for API integration (error UX, model fidelity, resilience, rate limiter).
+last_updated: "2026-05-06T03:40:40.961Z"
+last_activity: 2026-05-06 — Phase 1 verified in-game. Plugin loads, /nflip toggles, config persists, world validation works, CI/CD auto-releases.
 progress:
   total_phases: 7
-  completed_phases: 1
-  total_plans: 2
-  completed_plans: 2
+  completed_phases: 2
+  total_plans: 3
+  completed_plans: 3
   percent: 14
 ---
 
@@ -25,7 +25,7 @@ See: .planning/PROJECT.md (updated 2026-05-06)
 
 ## Current Position
 
-Phase: 01 of 1 (plugin shell)
+Phase: 02 of 2 (api integration)
 Next: 02 — API Integration
 Status: Milestone complete
 Last activity: 2026-05-06 — Phase 1 verified in-game. Plugin loads, /nflip toggles, config persists, world validation works, CI/CD auto-releases.

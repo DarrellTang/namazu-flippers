@@ -82,10 +82,12 @@ public sealed class SaddlebagClient
                 // 5xx → transient, retry if attempts remain
                 if (attempt < MaxRetries)
                 {
-                    _log.Warning("/nflip: API server error {(int)response.StatusCode}, retrying... (attempt {attempt + 1}/{MaxRetries})");
+                    _log.Warning("/nflip: API server error {StatusCode}, retrying... (attempt {Attempt}/{MaxRetries})",
+                        (int)response.StatusCode, attempt + 1, MaxRetries);
                     await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, attempt)), ct);
+                    var newRequest = await CloneHttpRequestAsync(httpRequest);
                     httpRequest.Dispose();
-                    httpRequest = await CloneHttpRequestAsync(httpRequest);
+                    httpRequest = newRequest;
                     continue;
                 }
 
@@ -95,14 +97,22 @@ public sealed class SaddlebagClient
             }
             catch (HttpRequestException ex) when (attempt < MaxRetries)
             {
-                _log.Warning("/nflip: Network error, retrying... (attempt {attempt + 1}/{MaxRetries}): {ex.Message}");
+                _log.Warning("/nflip: Network error, retrying... (attempt {Attempt}/{MaxRetries}): {Message}",
+                    attempt + 1, MaxRetries, ex.Message);
                 await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, attempt)), ct);
+                var newRequest = await CloneHttpRequestAsync(httpRequest);
+                httpRequest.Dispose();
+                httpRequest = newRequest;
             }
-            catch (TaskCanceledException ex) when (attempt < MaxRetries && !ct.IsCancellationRequested)
+            catch (TaskCanceledException) when (attempt < MaxRetries && !ct.IsCancellationRequested)
             {
                 // Timeout (not user cancellation)
-                _log.Warning("/nflip: Request timed out, retrying... (attempt {attempt + 1}/{MaxRetries})");
+                _log.Warning("/nflip: Request timed out, retrying... (attempt {Attempt}/{MaxRetries})",
+                    attempt + 1, MaxRetries);
                 await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, attempt)), ct);
+                var newRequest = await CloneHttpRequestAsync(httpRequest);
+                httpRequest.Dispose();
+                httpRequest = newRequest;
             }
         }
 
