@@ -1,6 +1,7 @@
 using Dalamud.Game.Command;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
+using NamazuFlippers.API;
 
 namespace NamazuFlippers;
 
@@ -16,8 +17,17 @@ public class NamazuFlippers : IDalamudPlugin
     private readonly ICommandManager commandManager;
     private readonly IPluginLog log;
 
+    private readonly RateLimiter rateLimiter;
+    private readonly SaddlebagClient apiClient;
+
     private readonly FirstRunWindow firstRunWindow;
     private bool isVisible;
+
+    /// <summary>
+    /// Set when an API call fails. Rendered as an in-window error banner by Phase 4's OnDraw.
+    /// Cleared on successful scan or user dismiss.
+    /// </summary>
+    public string? LastApiError { get; private set; }
 
     public Configuration Configuration { get; set; }
 
@@ -32,7 +42,18 @@ public class NamazuFlippers : IDalamudPlugin
 
         Configuration = pluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
 
+        rateLimiter = new RateLimiter(TimeSpan.FromMilliseconds(1000));
+        apiClient = new SaddlebagClient(Configuration, log, rateLimiter);
+
         firstRunWindow = new FirstRunWindow(Configuration, pluginInterface, log, () => isVisible);
+
+        // Phase 2: SaddlebagClient is instantiated and ready.
+        // Phase 3 ScanEngine will call apiClient.ScanAsync().
+        // For now, a placeholder demonstrates the fire-and-forget error surfacing pattern:
+        // _ = Task.Run(async () => {
+        //     try { var result = await apiClient.ScanAsync(CancellationToken.None); LastApiError = null; }
+        //     catch (ApiException ex) { log.Error($"/nflip: {ex.Message}"); LastApiError = ex.Message; }
+        // });
 
         commandManager.AddHandler(CommandName, new CommandInfo(OnCommand)
         {
