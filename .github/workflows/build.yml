@@ -46,6 +46,8 @@ jobs:
           jq --arg v "$VERSION" '.AssemblyVersion = $v' NamazuFlippers.json > tmp.json && mv tmp.json NamazuFlippers.json
           # Update pluginmaster
           jq --arg v "$VERSION" --arg t "$TIMESTAMP" '.[0].AssemblyVersion = $v | .[0].LastUpdate = $t' ../pluginmaster.json > tmp.json && mv tmp.json ../pluginmaster.json
+
+      - name: Restore dependencies
         run: dotnet restore
 
       - name: Build
