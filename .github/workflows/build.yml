@@ -39,3 +39,15 @@ jobs:
 
       - name: Build
         run: dotnet build --no-restore --configuration Release --nologo
+
+      - name: Stage plugin for upload
+        run: |
+          mkdir -p ../dist/NamazuFlippers
+          cp bin/Release/NamazuFlippers.dll ../dist/NamazuFlippers/
+          cp NamazuFlippers.json ../dist/NamazuFlippers/
+
+      - name: Upload plugin artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: NamazuFlippers
+          path: dist/NamazuFlippers/
