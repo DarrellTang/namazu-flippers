@@ -6,9 +6,9 @@ using System.Numerics;
 namespace NamazuFlippers;
 
 /// <summary>
-/// First-run home world selection popup. Validates against all 85 known FFXIV worlds.
+/// First-run home world selection popup. Offers an alphabetical dropdown of all 85 FFXIV worlds.
 /// Appears automatically on first /nflip when no home world is configured.
-/// Dismisses after a valid world is confirmed and saved.
+/// Dismisses after a world is selected and confirmed.
 /// </summary>
 public class FirstRunWindow
 {
@@ -17,14 +17,13 @@ public class FirstRunWindow
     private readonly IPluginLog log;
     private readonly Func<bool> isVisible;
 
-    private string pendingHomeWorld = "";
+    private int selectedWorldIndex = -1;
 
     /// <summary>
-    /// All 85 FFXIV worlds as of Dawntrail 7.x. Used to validate home world input.
-    /// A world picker dropdown will replace this validation in Phase 4 (ConfigWindow).
+    /// All 85 FFXIV worlds as of Dawntrail 7.x, sorted alphabetically for the dropdown picker.
     /// </summary>
-    private static readonly HashSet<string> KnownWorlds = new(StringComparer.OrdinalIgnoreCase)
-    {
+    private static readonly string[] KnownWorlds =
+    [
         "Adamantoise", "Aegis", "Alexander", "Alpha", "Anima", "Asura", "Atomos",
         "Bahamut", "Balmung", "Behemoth", "Belias", "Bismarck", "Brynhildr",
         "Cactuar", "Carbuncle", "Cerberus", "Chocobo", "Coeurl", "Cuchulainn",
@@ -49,7 +48,7 @@ public class FirstRunWindow
         "Valefor",
         "Yojimbo",
         "Zalera", "Zeromus", "Zodiark", "Zurvan",
-    };
+    ];
 
     public FirstRunWindow(
         Configuration configuration,
@@ -83,36 +82,47 @@ public class FirstRunWindow
         if (ImGui.BeginPopupModal("Welcome to Namazu Flippers", ref popupOpen,
             ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoResize))
         {
-            ImGui.Text("Enter your home world to get started:");
+            ImGui.Text("Select your home world:");
 
-            // Input field for home world name (max 32 chars)
-            pendingHomeWorld = pendingHomeWorld.Length > 32
-                ? pendingHomeWorld[..32]
-                : pendingHomeWorld;
-            ImGui.InputText("##home-world-input", ref pendingHomeWorld, 32);
+            // Dropdown combo — guaranteed valid, no typo or validation needed
+            var preview = selectedWorldIndex >= 0 && selectedWorldIndex < KnownWorlds.Length
+                ? KnownWorlds[selectedWorldIndex]
+                : "Choose a world...";
+
+            if (ImGui.BeginCombo("##home-world-combo", preview))
+            {
+                for (int i = 0; i < KnownWorlds.Length; i++)
+                {
+                    var isSelected = i == selectedWorldIndex;
+                    if (ImGui.Selectable(KnownWorlds[i], isSelected))
+                        selectedWorldIndex = i;
+
+                    if (isSelected)
+                        ImGui.SetItemDefaultFocus();
+                }
+                ImGui.EndCombo();
+            }
 
             ImGui.Spacing();
 
-            // Confirm button — validates and saves home world
+            // Confirm button — saves the selected world
+            var canConfirm = selectedWorldIndex >= 0 && selectedWorldIndex < KnownWorlds.Length;
+            if (!canConfirm)
+                ImGui.BeginDisabled();
+
             bool confirmPressed = ImGui.Button("Confirm", new Vector2(120, 0));
 
-            if (confirmPressed && !string.IsNullOrWhiteSpace(pendingHomeWorld))
+            if (!canConfirm)
+                ImGui.EndDisabled();
+
+            if (confirmPressed && canConfirm)
             {
-                var trimmed = pendingHomeWorld.Trim();
-                if (!KnownWorlds.Contains(trimmed))
-                {
-                    ImGui.TextColored(new Vector4(1, 0.3f, 0.3f, 1),
-                        $"\"{trimmed}\" is not a recognized world.");
-                }
-                else
-                {
-                    configuration.HomeWorld = trimmed;
-                    pluginInterface.SavePluginConfig(configuration);
+                configuration.HomeWorld = KnownWorlds[selectedWorldIndex];
+                pluginInterface.SavePluginConfig(configuration);
 
-                    log.Information($"Home world set to: {configuration.HomeWorld}");
+                log.Information($"Home world set to: {configuration.HomeWorld}");
 
-                    ImGui.CloseCurrentPopup();
-                }
+                ImGui.CloseCurrentPopup();
             }
 
             ImGui.EndPopup();
