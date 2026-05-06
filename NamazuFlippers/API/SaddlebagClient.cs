@@ -45,13 +45,17 @@ public sealed class SaddlebagClient
             await _rateLimiter.WaitAsync(ct);
 
         var request = ScanRequest.FromConfiguration(_config);
-        using var httpRequest = new HttpRequestMessage(HttpMethod.Post, ScanEndpoint)
+        var httpRequest = new HttpRequestMessage(HttpMethod.Post, ScanEndpoint)
         {
-            Content = JsonContent.Create(request, typeof(ScanRequest),
-                sourceGenContext: ApiJsonContext.Default.Options)
+            Content = JsonContent.Create(request, options: new JsonSerializerOptions
+            {
+                PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower
+            })
         };
 
-        for (int attempt = 0; attempt <= MaxRetries; attempt++)
+        try
+        {
+            for (int attempt = 0; attempt <= MaxRetries; attempt++)
         {
             try
             {
@@ -120,6 +124,11 @@ public sealed class SaddlebagClient
         throw new ApiException(
             $"API call failed after {MaxRetries + 1} attempts.",
             statusCode: null, isRetryable: true);
+        }
+        finally
+        {
+            httpRequest.Dispose();
+        }
     }
 
     private static async Task<HttpRequestMessage> CloneHttpRequestAsync(HttpRequestMessage original)
