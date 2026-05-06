@@ -3,83 +3,78 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: completed
-stopped_at: Phase 1 discuss complete. CONTEXT.md written, docs renamed to Namazu Flippers.
-last_updated: "2026-05-05T05:36:49.839Z"
-last_activity: 2026-05-04 — Phase 1 planned, 2 PLAN.md files created
+stopped_at: Phase 1 complete, ready for Phase 2
+last_updated: "2026-05-06T01:54:30.784Z"
+last_activity: 2026-05-06 — Phase 1 verified in-game. Plugin loads, /nflip toggles, config persists, world validation works, CI/CD auto-releases.
 progress:
   total_phases: 7
   completed_phases: 1
   total_plans: 2
   completed_plans: 2
-  percent: 0
+  percent: 14
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-05-04)
+See: .planning/PROJECT.md (updated 2026-05-06)
 
 **Core value:** A single button gives you today's best arbitrage route. Follow it, buy, list, done in under 20 minutes. Every day.
-**Current focus:** Phase 1 — Plugin Shell & Configuration
+**Current focus:** Phase 2 — API Integration
 
 ## Current Position
 
 Phase: 01 of 1 (plugin shell)
-Plan: 2 of 2
+Next: 02 — API Integration
 Status: Milestone complete
-Last activity: 2026-05-04 — Phase 1 planned, 2 PLAN.md files created
+Last activity: 2026-05-06 — Phase 1 verified in-game. Plugin loads, /nflip toggles, config persists, world validation works, CI/CD auto-releases.
 
-Progress: [░░░░░░░░░░] 0%
+Progress: ██░░░░░░░░ 14%
 
-**Phase 1 decisions captured:** .planning/phases/01-plugin-shell/01-CONTEXT.md
+**Phase 1 deliverables:**
+
+- NamazuFlippers solution + project (net10.0-windows, Dalamud.NET.Sdk/15.0.0)
+- Plugin manifest (API level 15, /nflip command)
+- Entry point with IDalamudPlugin lifecycle
+- Configuration class (14 props, CONF-01 through CONF-09, IPluginConfiguration)
+- FirstRunWindow with 85-world validation
+- GitHub Actions CI/CD: cross-platform build (Ubuntu), auto-versioned releases, pluginmaster.json for Dalamud custom repo
+- .gitignore for build artifacts
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 0
-- Average duration: N/A
-- Total execution time: 0 hours
+- Total plans completed: 2
+- Total execution time: ~21 min
 
 **By Phase:**
-
-| Phase | Plans | Total | Avg/Plan |
-| ----- | ----- | ----- | -------- |
-| -     | -     | -     | -        |
-
-**Recent Trend:**
-
-- No plans executed yet
-
-*Updated after each plan completion*
+| Phase | Plans | Duration |
+| ----- | ----- | -------- |
+| 01    | 2     | ~21 min  |
 
 ## Accumulated Context
 
 ### Decisions
 
-Decisions are logged in PROJECT.md Key Decisions table.
-Recent decisions affecting current work:
-
-- Phase 1: Plugin named "Namazu Flippers" with `/nflip` chat command
-- Phase 1: Dalamud built-in config serialization (not custom JSON)
-- Phase 1: Minimal project scaffold, add folders per phase
-- Phase 1: Simple ImGui popup for first-run home world selection
-- Initialization: Use `/api/scan` as sole discovery endpoint (no multi-step pipeline)
-- Initialization: JSON file persistence over SQLite for session state
-- Initialization: OOS priority handled by scan params (`show_out_stock=true`)
-- Initialization: Vendor items included by default (`include_vendor=true`)
+- Plugin scaffold architecture: thin entry point (62 lines), UI in dedicated window classes
+- Cross-platform build via goatcorp.github.io/dalamud-distrib/latest.zip
+- Auto-versioned CI releases: 1.0.{run}.0
+- Named category constants: FurnitureIds, CollectibleIds, GlamourIds, DefaultCategoryFilters
+- World validation: hash set of 85 FFXIV worlds, case-insensitive
+- Repo: public, DarrellTang/namazu-flippers
 
 ### Pending Todos
 
-None yet.
+None.
 
 ### Blockers/Concerns
 
-None yet.
+None.
 
 ## Session Continuity
 
-Last session: 2026-05-04 21:15
-Stopped at: Phase 1 discuss complete. CONTEXT.md written, docs renamed to Namazu Flippers.
+Last session: 2026-05-06 02:05 UTC
+Stopped at: Phase 1 complete, ready for Phase 2
 Resume file: None

@@ -12,7 +12,9 @@ A single button gives you today's best arbitrage route. Follow it, buy, list, do
 
 ### Validated
 
-(None yet — ship to validate)
+- PLUG-01, PLUG-02, PLUG-03: Plugin shell requirements validated in Phase 1
+- CONF-01, CONF-09: Home world prompt and config persistence validated in-game
+- CONF-02 through CONF-08: Configuration model ready; ConfigWindow UI in Phase 4
 
 ### Active
 
