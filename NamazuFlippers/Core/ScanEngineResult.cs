@@ -22,6 +22,10 @@ public sealed class ScanEngineResult
 
     public List<RankedOpportunity> Opportunities { get; set; } = [];
 
+    public List<RouteStop> RouteStops { get; set; } = [];
+
+    public int TotalExpectedDailyProfit { get; set; }
+
     public DateTimeOffset CreatedAtUtc { get; set; } = DateTimeOffset.UtcNow;
 
     public bool IsFresh { get; set; }
