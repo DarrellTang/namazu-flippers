@@ -39,12 +39,12 @@
 ### Core UI
 
 - [ ] **UI-01**: DailyRouteWindow displays today's route: server stops in order, items to buy per stop with prices
-- [ ] **UI-02**: Each item has a checkbox to mark "bought" at the purchase server
-- [ ] **UI-03**: Home stop section shows items to list with "listed" checkboxes
-- [ ] **UI-04**: Running profit tally updates as items are marked listed
-- [ ] **UI-05**: Progress bar shows completion (bought/total and listed/total)
-- [ ] **UI-06**: OOS (out-of-stock) items are visually highlighted with a priority indicator
-- [ ] **UI-07**: Server stops auto-collapse after all items at that stop are bought
+- [x] **UI-02**: Each item has a checkbox to mark "bought" at the purchase server
+- [x] **UI-03**: Home stop section shows items to list with "listed" checkboxes
+- [x] **UI-04**: Running profit tally updates as items are marked listed
+- [x] **UI-05**: Progress bar shows completion (bought/total and listed/total)
+- [x] **UI-06**: OOS (out-of-stock) items are visually highlighted with a priority indicator
+- [x] **UI-07**: Server stops auto-collapse after all items at that stop are bought
 - [ ] **UI-08**: ConfigWindow provides settings UI matching CONF-01 through CONF-09
 
 ### Session Persistence
@@ -105,12 +105,12 @@
 | SCAN-03 | Phase 3 | Complete |
 | SCAN-04 | Phase 3 | Complete |
 | UI-01 | Phase 4 | Pending |
-| UI-02 | Phase 4 | Pending |
-| UI-03 | Phase 4 | Pending |
-| UI-04 | Phase 4 | Pending |
-| UI-05 | Phase 4 | Pending |
-| UI-06 | Phase 4 | Pending |
-| UI-07 | Phase 4 | Pending |
+| UI-02 | Phase 4 | Complete |
+| UI-03 | Phase 4 | Complete |
+| UI-04 | Phase 4 | Complete |
+| UI-05 | Phase 4 | Complete |
+| UI-06 | Phase 4 | Complete |
+| UI-07 | Phase 4 | Complete |
 | UI-08 | Phase 4 | Pending |
 | SESS-01 | Phase 5 | Pending |
 | SESS-02 | Phase 5 | Pending |

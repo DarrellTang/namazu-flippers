@@ -78,9 +78,9 @@ Plans:
 **Plans**: 4 plans
 
 Plans:
-- [ ] 04-00-PLAN.md — Create tests/phase04_nyquist.sh source-validation script (Wave 0)
-- [ ] 04-01-PLAN.md — Build WindowSystem foundation, DailyRouteWindow read-only layout, FirstRunWindow migration (UI-01)
-- [ ] 04-02-PLAN.md — Wire buy/list checkboxes, profit tally, progress, OOS, auto-collapse (UI-02..UI-07)
+- [x] 04-00-PLAN.md — Create tests/phase04_nyquist.sh source-validation script (Wave 0)
+- [x] 04-01-PLAN.md — Build WindowSystem foundation, DailyRouteWindow read-only layout, FirstRunWindow migration (UI-01)
+- [x] 04-02-PLAN.md — Wire buy/list checkboxes, profit tally, progress, OOS, auto-collapse (UI-02..UI-07)
 - [ ] 04-03-PLAN.md — Build ConfigWindow with snapshot/dirty/discard and all CONF-01..09 controls (UI-08)
 
 ### Phase 5: Session Persistence
