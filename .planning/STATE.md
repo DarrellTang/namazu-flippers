@@ -4,14 +4,14 @@ milestone: v1.0
 milestone_name: milestone
 status: verifying
 stopped_at: Phase 4 context gathered
-last_updated: "2026-05-07T07:05:56.000Z"
+last_updated: "2026-05-07T07:10:00.144Z"
 last_activity: 2026-05-07
 progress:
   total_phases: 7
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 9
-  completed_plans: 8
-  percent: 89
+  completed_plans: 9
+  percent: 100
 ---
 
 # Project State
@@ -32,7 +32,7 @@ Next: 04 — Core UI
 Status: Phase complete — ready for verification
 Last activity: 2026-05-07
 
-Progress: [█████████░] 89%
+Progress: [██████████] 100%
 
 **Phase 1 deliverables:**
 
@@ -64,6 +64,7 @@ Progress: [█████████░] 89%
 | Phase 03 P01 | 18 min | 3 tasks | 6 files |
 | Phase 03 P02 | 9 min | 5 tasks | 10 files |
 | Phase 04-core-ui P04-02 | 12 | 2 tasks | 1 files |
+| Phase 04 P04-03 | 4min | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -77,6 +78,8 @@ Progress: [█████████░] 89%
 - Repo: public, DarrellTang/namazu-flippers
 - D-08 (04-01): WindowSystem ownership stays in NamazuFlippers.cs — 196-line entry point is under complexity threshold for indirection layer
 - 04-01: DailyRouteWindow declares private color constants with literal Vector4 values for nyquist.sh assertions; UiColors.cs is the public canonical source
+- [Phase ?]: D-12: showUnsavedModal trigger at top of Draw() ensures same-frame OpenPopup
+- [Phase ?]: D-13: HomeWorld preserved on Reset to defaults
 
 ### Pending Todos
 
@@ -88,6 +91,6 @@ No implementation blockers. Local macOS compiler verification is intentionally r
 
 ## Session Continuity
 
-Last session: 2026-05-07T07:05:55.996Z
+Last session: 2026-05-07T07:09:54.315Z
 Stopped at: Phase 4 context gathered
 Resume file: None

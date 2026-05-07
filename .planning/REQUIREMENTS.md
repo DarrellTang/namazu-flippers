@@ -45,7 +45,7 @@
 - [x] **UI-05**: Progress bar shows completion (bought/total and listed/total)
 - [x] **UI-06**: OOS (out-of-stock) items are visually highlighted with a priority indicator
 - [x] **UI-07**: Server stops auto-collapse after all items at that stop are bought
-- [ ] **UI-08**: ConfigWindow provides settings UI matching CONF-01 through CONF-09
+- [x] **UI-08**: ConfigWindow provides settings UI matching CONF-01 through CONF-09
 
 ### Session Persistence
 
@@ -111,7 +111,7 @@
 | UI-05 | Phase 4 | Complete |
 | UI-06 | Phase 4 | Complete |
 | UI-07 | Phase 4 | Complete |
-| UI-08 | Phase 4 | Pending |
+| UI-08 | Phase 4 | Complete |
 | SESS-01 | Phase 5 | Pending |
 | SESS-02 | Phase 5 | Pending |
 | SESS-03 | Phase 5 | Pending |
