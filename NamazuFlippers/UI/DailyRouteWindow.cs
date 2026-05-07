@@ -152,14 +152,13 @@ public class DailyRouteWindow : Window
 
     private void DrawRouteStop(RouteStop stop, ScanEngineResult result)
     {
-        // Auto-collapse on stop completion (UI-07) — wave 2 wires ImGui.SetNextItemOpen(false, ImGuiCond.Always).
-        // Wave 1: read-only headers, no auto-collapse trigger. State dicts tracked for wave 2.
-        // 04-02 adds: SetNextItemOpen with ImGuiCond.Always once allBought first becomes true.
-        bool allBought = stop.Items.Count > 0 && stop.Items.All(item => boughtState.GetValueOrDefault(item.ItemId));
+        bool allBought = stop.Items.Count > 0
+            && stop.Items.All(item => boughtState.GetValueOrDefault(item.ItemId));
 
+        // Auto-collapse on first all-bought frame; reset flag when user un-checks (UI-07, Pitfall 2)
         if (allBought && !autoCollapsedStops.GetValueOrDefault(stop.PurchaseSource))
         {
-            // 04-02: ImGui.SetNextItemOpen(false, ImGuiCond.Always);
+            ImGui.SetNextItemOpen(false, ImGuiCond.Always);
             autoCollapsedStops[stop.PurchaseSource] = true;
         }
         else if (!allBought)
@@ -167,22 +166,36 @@ public class DailyRouteWindow : Window
             autoCollapsedStops[stop.PurchaseSource] = false;
         }
 
-        var headerLabel = stop.IsVendorStop
-            ? $"Vendor: {stop.PurchaseSource} — {stop.Items.Count} items — {stop.TotalExpectedDailyProfit:n0} gil/day"
-            : $"{stop.PurchaseSource} ({stop.DataCenter}) — {stop.Items.Count} items — {stop.TotalExpectedDailyProfit:n0} gil/day";
-
-        if (stop.IsVendorStop)
+        // Header label — checkmark prefix and CompletedGray when all bought
+        string headerLabel;
+        if (allBought)
         {
-            ImGui.PushStyleColor(ImGuiCol.Text, VendorCyan);
-            var open = ImGui.CollapsingHeader(headerLabel);
-            ImGui.PopStyleColor();
-            if (open)
-                DrawItems(stop, isHomeStop: false);
+            headerLabel = stop.IsVendorStop
+                ? $"✓ Vendor: {stop.PurchaseSource} — {stop.Items.Count} items — {stop.TotalExpectedDailyProfit:n0} gil/day"
+                : $"✓ {stop.PurchaseSource} ({stop.DataCenter}) — {stop.Items.Count} items — {stop.TotalExpectedDailyProfit:n0} gil/day";
         }
         else
         {
-            if (ImGui.CollapsingHeader(headerLabel))
-                DrawItems(stop, isHomeStop: stop.PurchaseSource.Equals(plugin.Configuration.HomeWorld, StringComparison.OrdinalIgnoreCase));
+            headerLabel = stop.IsVendorStop
+                ? $"Vendor: {stop.PurchaseSource} — {stop.Items.Count} items — {stop.TotalExpectedDailyProfit:n0} gil/day"
+                : $"{stop.PurchaseSource} ({stop.DataCenter}) — {stop.Items.Count} items — {stop.TotalExpectedDailyProfit:n0} gil/day";
+        }
+
+        // Apply header color: CompletedGray when all bought, VendorCyan for vendor stops
+        bool pushColor = allBought || stop.IsVendorStop;
+        if (pushColor)
+            ImGui.PushStyleColor(ImGuiCol.Text, allBought ? CompletedGray : VendorCyan);
+
+        bool open = ImGui.CollapsingHeader(headerLabel);
+
+        if (pushColor)
+            ImGui.PopStyleColor();
+
+        if (open)
+        {
+            bool isHomeStop = !stop.IsVendorStop
+                && stop.PurchaseSource.Equals(plugin.Configuration.HomeWorld, StringComparison.OrdinalIgnoreCase);
+            DrawItems(stop, isHomeStop);
         }
     }
 
