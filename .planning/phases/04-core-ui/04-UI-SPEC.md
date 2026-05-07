@@ -131,11 +131,13 @@ ImGui uses a single embedded font (Dalamud's ProggyClean/Noto default). Custom f
 | Role | Size | Mechanism | Line Height |
 |------|------|-----------|-------------|
 | Body / item row | Default (13px equivalent) | `ImGui.Text` | ImGui default (1.0 leading + frame padding) |
-| Section label / stop header | Default, pushed bold | `ImGui.PushFont(UiBuilder.DefaultFont)` bold variant if available, else plain | ImGui default |
+| Section label / stop header | Default | `ImGui.CollapsingHeader` (which already renders heavier than body text); section emphasis comes from **color + separator**, not weight | ImGui default |
 | Profit tally / total | Default | `ImGui.TextColored(GilGold, ...)` for value, plain for label | ImGui default |
 | Status banner | Default | `ImGui.TextWrapped` | ImGui default (wraps at window width) |
 
 **No custom font pairs, no rem units, no line-height CSS values.** Typography is controlled entirely by ImGui's built-in font atlas.
+
+**No bold variant in stock Dalamud.** `UiBuilder` exposes `DefaultFont`, `IconFont`, and `MonoFont` only — there is no `BoldFont`. Section emphasis is achieved through (1) `CollapsingHeader`'s built-in heavier rendering and indent affordance, (2) `TextColored` for high-contrast values like gil amounts, and (3) `Separator()` to delineate sections. Do **not** attempt to load a custom bold font in Phase 4 — the visual hierarchy is sufficient without it.
 
 ---
 
@@ -194,12 +196,12 @@ Banner implementation: `ImGui.PushStyleColor` + `ImGui.TextWrapped` + `ImGui.Pop
 |--------|-----------|----------|
 | Status banner | `ImGui.TextColored` / `ImGui.TextWrapped` | Conditional on ScanEngineStatus |
 | Separator | `ImGui.Separator()` | After banner, after progress section, between stops |
-| Progress bar (bought) | `ImGui.ProgressBar(boughtFraction, new Vector2(-1, 16))` | Fraction = bought / total items; green fill |
-| Progress bar (listed) | `ImGui.ProgressBar(listedFraction, new Vector2(-1, 16))` | Fraction = listed / total items; cyan fill |
+| Progress bar (bought) | `PushStyleColor(ImGuiCol.PlotHistogram, SuccessGreen); ImGui.ProgressBar(boughtFraction, new Vector2(-1, 16)); PopStyleColor();` | Fraction = bought / total items. Fill color is set via `PushStyleColor` on `PlotHistogram` (ProgressBar has no color parameter). |
+| Progress bar (listed) | `PushStyleColor(ImGuiCol.PlotHistogram, PurchaseCyan); ImGui.ProgressBar(listedFraction, new Vector2(-1, 16)); PopStyleColor();` | Fraction = listed / total items. Same `PlotHistogram` style override. |
 | Profit tally | `ImGui.TextColored(GilGold, ...)` | `Running: X,XXX,XXX / X,XXX,XXX gil` (listed profit / total potential) |
 | Rescan button | `ImGui.Button("Rescan Route")` | Calls `RunScanAsync(forceRefresh: true)`; disabled while scan in progress |
-| Server stop header | `ImGui.CollapsingHeader(label, ref open)` | `label` = `PurchaseSource` + `DataCenter` if non-vendor; auto-collapses when all items bought |
-| Vendor stop header | `ImGui.CollapsingHeader(label, ref open)` | `label` = `Vendor: ...` in VendorCyan text; structured like world stop but with distinct color |
+| Server stop header | See **Auto-collapse on completion** below. Pattern: track per-stop "has-auto-collapsed" flag; call `ImGui.SetNextItemOpen(false, ImGuiCond.Always)` once on the frame `allBought` first becomes true, then `ImGui.CollapsingHeader(label)`. | `label` = `PurchaseSource` + `DataCenter` if non-vendor. The `ref bool` overload of `CollapsingHeader` controls close-button (X) visibility, not open/closed state — never use it for collapse. |
+| Vendor stop header | Same auto-collapse pattern as server stop header. | `label` = `Vendor: ...` in VendorCyan text. Structured like world stop but with distinct header color. |
 | Item checkbox | `ImGui.Checkbox("##bought-{itemId}", ref bought)` | Inline with item row; triggers profit tally update |
 | Item name text | `ImGui.SameLine(); ImGui.Text(name)` or `TextColored(CompletedGray, ...)` if bought | OOS items get OosOrange; bought items get CompletedGray |
 | OOS badge | `ImGui.SameLine(0,4); ImGui.TextColored(OosOrange, "[OOS]")` | Shown when `OutOfStock == true` |
@@ -260,9 +262,11 @@ Config reset: `ImGui.SameLine(); ImGui.PushStyleColor(ErrorRed); ImGui.Button("R
 
 ### Auto-collapse on completion
 
-- When all `RouteStop.Items` have `bought == true`: collapse that stop's `CollapsingHeader`.
+- When all `RouteStop.Items` have `bought == true`: collapse that stop's `CollapsingHeader` **once**, on the frame the condition first becomes true. Do not force re-collapse on subsequent frames — the user must remain able to re-expand the stop to inspect what they bought.
+- **Mechanism:** maintain a per-stop "has-auto-collapsed" flag in the window state (e.g., `Dictionary<string, bool> autoCollapsedStops` keyed by `PurchaseSource`). On each draw, if `allBought == true` AND `autoCollapsedStops[source] == false`, call `ImGui.SetNextItemOpen(false, ImGuiCond.Always)` before the `CollapsingHeader` and set the flag to `true`. If `allBought` flips back to `false` (user unchecks an item), reset the flag to `false` so the next completion will trigger collapse again.
+- Do **not** use the `ref bool` overload of `CollapsingHeader` for this — that parameter controls the close-button (X) visibility, not the open/closed state. ImGui has no direct "set open" API on the header itself; `SetNextItemOpen` is the only correct mechanism.
 - Collapsed label format: `✓ {PurchaseSource} — {N} items — {total profit:n0} gil/day`.
-- CompletedGray color on collapsed header label.
+- CompletedGray color on collapsed header label (apply via `PushStyleColor(ImGuiCol.Text, CompletedGray)` around the `CollapsingHeader` call).
 - Source: UI-07.
 
 ### Tooltips
@@ -340,8 +344,9 @@ Phase 5 adds JSON persistence. In Phase 4, bought/listed state lives in the wind
 |-------|------|----------|
 | `LatestScanResult` | `ScanEngineResult?` | `NamazuFlippers` plugin (already exists) |
 | `scanInProgress` | `int` (0/1) | `NamazuFlippers` plugin (already exists) |
-| `boughtState` | `Dictionary<int, bool>` | `DailyRouteWindow` |
-| `listedState` | `Dictionary<int, bool>` | `DailyRouteWindow` |
+| `boughtState` | `Dictionary<int, bool>` keyed by `ItemId` | `DailyRouteWindow` |
+| `listedState` | `Dictionary<int, bool>` keyed by `ItemId` | `DailyRouteWindow` |
+| `autoCollapsedStops` | `Dictionary<string, bool>` keyed by `RouteStop.PurchaseSource` — flips true when stop first becomes all-bought, flips false if any item is unchecked | `DailyRouteWindow` |
 | Config | `Configuration` | `NamazuFlippers.Configuration` |
 
 ---
