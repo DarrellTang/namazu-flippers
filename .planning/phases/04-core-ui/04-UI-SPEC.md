@@ -232,8 +232,10 @@ Banner implementation: `ImGui.PushStyleColor` + `ImGui.TextWrapped` + `ImGui.Pop
 | CacheDurationHours | CONF-08 | `ImGui.SliderInt("Cache Duration (hours)", ref val, 1, 24)` | |
 | EnableShortagePredictor | Phase 6 | `ImGui.Checkbox("Enable Shortage Predictor (Phase 6)", ref val)` | Greyed-out / disabled for now; visible but inert in Phase 4 |
 
-Config save: `ImGui.Button("Save Settings")` → `pluginInterface.SavePluginConfig(configuration)`.
-Config reset: `ImGui.SameLine(); ImGui.PushStyleColor(ErrorRed); ImGui.Button("Reset to Defaults"); ImGui.PopStyleColor()` → restore all default values + save.
+Config edit semantics (per `04-CONTEXT.md` D-12): on window open, snapshot the current `Configuration` instance. UI controls mutate the live `Configuration` directly. Track a dirty flag on any control change. **Save** calls `pluginInterface.SavePluginConfig(configuration)` and updates the snapshot. Closing the window while dirty opens an unsaved-changes confirmation modal (`Save changes? [Save] [Discard] [Cancel]`); Discard restores from the snapshot.
+
+Config save: `ImGui.Button("Save Settings")` → `pluginInterface.SavePluginConfig(configuration)`; clear dirty flag; refresh snapshot.
+Config reset (per `04-CONTEXT.md` D-13): `ImGui.SameLine(); ImGui.PushStyleColor(ErrorRed); ImGui.Button("Reset to Defaults"); ImGui.PopStyleColor()` → open confirmation modal `Reset all settings to defaults? [Reset] [Cancel]`. On confirm, restore all default values from `Configuration.cs`; the dirty flag flips true; user must still click Save to persist (Reset does NOT auto-save).
 
 ---
 
@@ -308,7 +310,7 @@ Config reset: `ImGui.SameLine(); ImGui.PushStyleColor(ErrorRed); ImGui.Button("R
 | Tooltip: item velocity | `Avg {SalesPerDay:F1} sales/day` | default |
 | Tooltip: budget cap = 0 | `Set to 0 to disable the budget cap` | default |
 | Tooltip: region-wide | `Search all data centers, not just your DC` | default |
-| Reset confirm | Inline: red-colored button, no modal (action is reversible via Save; no destructive data loss) | default |
+| Reset confirm | Modal: red-colored button opens a confirmation popup `Reset all settings to defaults? [Reset] [Cancel]`. After confirmation, controls revert to hardcoded defaults and the dirty flag flips true; the user must still click Save to persist. (Updated 2026-05-06 per `04-CONTEXT.md` D-13.) | 04-CONTEXT D-13 |
 
 **Gil formatting:** Use `{value:n0}` (C# format specifier) for all gil amounts — produces `1,234,567` with locale-appropriate thousands separator.
 
