@@ -189,7 +189,7 @@ public sealed class ScanEngine
         item.HomePrice > 0 &&
         item.CheapestPrice > 0 &&
         item.ExpectedDailyProfit > 0 &&
-        item.SalesPerDay > 0 &&
+        item.SalesPerDay >= Math.Max(config.MinSalesPerDay, double.Epsilon) &&
         (config.MaxBudgetPerItem <= 0 || item.CheapestPrice <= config.MaxBudgetPerItem);
 
     private static RankedOpportunity ToOpportunity(ScanItem item) => new()

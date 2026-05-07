@@ -65,6 +65,14 @@ public class Configuration : IPluginConfiguration
     /// </summary>
     public int MaxBudgetPerItem { get; set; } = 1_000_000;
 
+    /// <summary>
+    /// Minimum sales per day on the home server. Below this floor the API's
+    /// sales-per-day estimate is too noisy to trust (the rate is computed from
+    /// few observations in a 7-day window). Set to 0 to disable.
+    /// 0.33 ≈ 2 sales/week — a reliability threshold, not a preference.
+    /// </summary>
+    public double MinSalesPerDay { get; set; } = 0.33;
+
     // === CONF-03: Velocity Floor ===
 
     /// <summary>
