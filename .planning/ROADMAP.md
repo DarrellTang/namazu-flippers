@@ -8,7 +8,7 @@ Build a Dalamud plugin from scratch that connects to the Saddlebag Exchange API,
 
 - [x] **Phase 1: Plugin Shell & Configuration** - Dalamud project scaffold, manifest, config persistence
 - [x] **Phase 2: API Integration** - HTTP client, endpoint models, rate limiter (completed 2026-05-06)
-- [ ] **Phase 3: Scan Engine & Route Optimizer** - API call orchestration, result ranking, server routing
+- [x] **Phase 3: Scan Engine & Route Optimizer** - API call orchestration, result ranking, server routing (completed 2026-05-07)
 - [ ] **Phase 4: Core UI** - DailyRouteWindow with route display, buy/list checkboxes, profit tally
 - [ ] **Phase 5: Session Persistence** - JSON session store, scan caching, resume support
 - [ ] **Phase 6: Optional Features** - Shortage predictor supplement, game integration hooks
