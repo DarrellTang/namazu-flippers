@@ -19,7 +19,7 @@ public sealed class RouteOptimizer
         var selectedStops = opportunities
             .GroupBy(opportunity => opportunity.PurchaseSource, StringComparer.OrdinalIgnoreCase)
             .Select(group => CreateRouteStop(group, configuration.HomeWorld))
-            .Order(new RouteStopComparer())
+            .OrderBy(stop => stop, new RouteStopComparer())
             .Take(stopLimit)
             .ToList();
 
