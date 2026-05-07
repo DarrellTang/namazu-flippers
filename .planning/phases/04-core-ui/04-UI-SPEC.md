@@ -1,10 +1,11 @@
 ---
 phase: 4
 slug: core-ui
-status: draft
+status: approved
 shadcn_initialized: false
 preset: none
 created: 2026-05-06
+reviewed_at: 2026-05-06
 runtime: imgui
 ---
 
