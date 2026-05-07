@@ -2,7 +2,9 @@ using Dalamud.Interface.Windowing;
 using Dalamud.Plugin.Services;
 using Dalamud.Bindings.ImGui;
 using NamazuFlippers.Core;
+using System.Linq;
 using System.Numerics;
+using System.Threading;
 
 namespace NamazuFlippers.UI;
 
@@ -107,30 +109,32 @@ public class DailyRouteWindow : Window
     private void DrawProgressSection(ScanEngineResult? result)
     {
         var totalItems = result?.Opportunities.Count ?? 0;
-        var boughtCount = 0; // 04-02 will compute from boughtState
-        var listedCount = 0; // 04-02 will compute from listedState
+        var boughtCount = result?.Opportunities.Count(o => boughtState.GetValueOrDefault(o.ItemId)) ?? 0;
+        var listedCount = result?.Opportunities.Count(o => listedState.GetValueOrDefault(o.ItemId)) ?? 0;
         var totalProfit = result?.TotalExpectedDailyProfit ?? 0;
-        var listedProfit = 0; // 04-02 will compute
+        var listedProfit = result?.Opportunities
+            .Where(o => listedState.GetValueOrDefault(o.ItemId))
+            .Sum(o => o.ExpectedDailyProfit) ?? 0;
 
         ImGui.Text($"Bought: {boughtCount}/{totalItems}   Listed: {listedCount}/{totalItems}");
 
-        // Settings button — opens ConfigWindow (D-07); plugin.OpenConfigWindow wired to the plugin's method
         ImGui.SameLine();
-        const float settingsButtonWidth = 70f;
-        ImGui.SetCursorPosX(ImGui.GetWindowWidth() - settingsButtonWidth - ImGui.GetStyle().WindowPadding.X);
-        if (ImGui.Button("Settings"))
-            plugin.OpenConfigWindow(); // D-07: in-window Settings button
-
-        // Rescan button row
         const float buttonWidth = 110f;
+        var avail = ImGui.GetContentRegionAvail().X;
+        if (avail > buttonWidth)
+            ImGui.SetCursorPosX(ImGui.GetCursorPosX() + avail - buttonWidth);
+
         if (plugin.ScanInProgress)
             ImGui.BeginDisabled();
-        if (ImGui.Button("Rescan Route"))
-        {
-            // 04-02: wire RescanAsync — _ = plugin.RescanAsync(CancellationToken.None);
-        }
+        if (ImGui.Button("Rescan Route", new Vector2(buttonWidth, 0)))
+            _ = plugin.RescanAsync(CancellationToken.None);
         if (plugin.ScanInProgress)
             ImGui.EndDisabled();
+
+        // Settings button (D-07) — second entry point alongside UiBuilder.OpenConfigUi.
+        ImGui.SameLine();
+        if (ImGui.Button("Settings", new Vector2(80, 0)))
+            plugin.OpenConfigWindow();
 
         var boughtFraction = totalItems > 0 ? (float)boughtCount / totalItems : 0f;
         var listedFraction = totalItems > 0 ? (float)listedCount / totalItems : 0f;
@@ -189,14 +193,25 @@ public class DailyRouteWindow : Window
         {
             foreach (var item in stop.Items)
             {
-                // Wave 1: read-only — no checkbox interaction.
-                // 04-02 adds: ImGui.Checkbox("##bought-{item.ItemId}", ref bought); and updates boughtState[item.ItemId].
-                // 04-02 adds: in home stop, ImGui.Checkbox("##listed-{item.ItemId}", ref listed); and updates listedState[item.ItemId].
+                var bought = boughtState.GetValueOrDefault(item.ItemId);
+                if (ImGui.Checkbox($"##bought-{item.ItemId}", ref bought))
+                    boughtState[item.ItemId] = bought;
 
-                if (item.OutOfStock)
+                ImGui.SameLine();
+
+                if (bought)
+                    ImGui.TextColored(CompletedGray, item.Name);
+                else if (item.OutOfStock)
                     ImGui.TextColored(OosOrange, item.Name);
                 else
                     ImGui.Text(item.Name);
+
+                if (ImGui.IsItemHovered())
+                {
+                    ImGui.BeginTooltip();
+                    ImGui.Text($"Avg {item.SalesPerDay:F1} sales/day");
+                    ImGui.EndTooltip();
+                }
 
                 if (item.OutOfStock)
                 {
@@ -217,14 +232,11 @@ public class DailyRouteWindow : Window
                 if (isHomeStop)
                 {
                     ImGui.SameLine();
+                    var listed = listedState.GetValueOrDefault(item.ItemId);
+                    if (ImGui.Checkbox($"##listed-{item.ItemId}", ref listed))
+                        listedState[item.ItemId] = listed;
+                    ImGui.SameLine();
                     ImGui.TextColored(GilGold, $"List: {item.HomePrice:n0}");
-                }
-
-                if (ImGui.IsItemHovered())
-                {
-                    ImGui.BeginTooltip();
-                    ImGui.Text($"Avg {item.SalesPerDay:F1} sales/day");
-                    ImGui.EndTooltip();
                 }
             }
         }
