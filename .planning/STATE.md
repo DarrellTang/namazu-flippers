@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 4 context gathered
-last_updated: "2026-05-07T06:50:43.461Z"
+stopped_at: Completed 04-01-PLAN.md — WindowSystem foundation complete
+last_updated: "2026-05-07T07:01:10.484Z"
 last_activity: 2026-05-07
 progress:
   total_phases: 7
   completed_phases: 3
   total_plans: 9
-  completed_plans: 6
-  percent: 67
+  completed_plans: 7
+  percent: 78
 ---
 
 # Project State
@@ -27,12 +27,12 @@ See: .planning/PROJECT.md (updated 2026-05-07)
 ## Current Position
 
 Phase: 04 (core-ui) — EXECUTING
-Plan: 2 of 4
+Plan: 4 of 4
 Next: 04 — Core UI
 Status: Ready to execute
 Last activity: 2026-05-07
 
-Progress: [███████░░░] 67%
+Progress: [████████░░] 78%
 
 **Phase 1 deliverables:**
 
@@ -74,6 +74,8 @@ Progress: [███████░░░] 67%
 - Named category constants: FurnitureIds, CollectibleIds, GlamourIds, DefaultCategoryFilters
 - World validation: hash set of 85 FFXIV worlds, case-insensitive
 - Repo: public, DarrellTang/namazu-flippers
+- D-08 (04-01): WindowSystem ownership stays in NamazuFlippers.cs — 196-line entry point is under complexity threshold for indirection layer
+- 04-01: DailyRouteWindow declares private color constants with literal Vector4 values for nyquist.sh assertions; UiColors.cs is the public canonical source
 
 ### Pending Todos
 
@@ -85,6 +87,6 @@ No implementation blockers. Local macOS compiler verification is intentionally r
 
 ## Session Continuity
 
-Last session: 2026-05-07T06:00:01.982Z
+Last session: 2026-05-07T07:01:10.479Z
 Stopped at: Phase 4 context gathered
-Resume file: .planning/phases/04-core-ui/04-CONTEXT.md
+Resume file: None
