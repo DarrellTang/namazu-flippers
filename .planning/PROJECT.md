@@ -15,18 +15,15 @@ A single button gives you today's best arbitrage route. Follow it, buy, list, do
 - PLUG-01, PLUG-02, PLUG-03: Plugin shell requirements validated in Phase 1
 - CONF-01, CONF-09: Home world prompt and config persistence validated in-game
 - CONF-02 through CONF-08: Configuration model ready; ConfigWindow UI in Phase 4
+- SCAN-01, SCAN-02, SCAN-03, SCAN-04: Scan engine, route optimizer, cache, and manual refresh wiring validated in Phase 3
 
 ### Active
 
 - [ ] PLUGIN-01: User can configure home world, profit thresholds, category filters, and API settings via a config window
-- [ ] SCAN-01: Plugin calls `/api/scan` on demand (or uses cached results) and returns ranked arbitrage opportunities
-- [ ] ROUTE-01: Plugin groups purchased items by cheapest server and optimizes visit order to minimize server hops
 - [ ] UI-01: DailyRouteWindow shows today's route: which servers to visit, what to buy at each, prices, and expected profit
 - [ ] UI-02: One-click checkboxes mark items as bought/listed with running profit tally
 - [ ] UI-03: OOS (out-of-stock) items are visually highlighted as priority opportunities
-- [ ] UI-04: Rescan button re-runs the API query to refresh opportunities
 - [ ] SESSION-01: Session state (route, bought/listed status, profit tally) persists locally in JSON
-- [ ] SESSION-02: Scan results are cached with configurable expiry (default 4 hours)
 - [ ] OPT-01: Optional shortage-predictor supplement via `/api/ffxiv/shortagefutures`
 - [ ] INTEG-01: Optional market board hook detects when player is at market board
 - [ ] INTEG-02: Optional server travel hook auto-advances route to current server
@@ -78,11 +75,11 @@ Login → open plugin → see today's route → travel to server → buy items �
 | Use Dalamud built-in config serialization | Standard Dalamud plugin pattern, less boilerplate than custom JSON | Phase 1 |
 | Minimal project scaffold in Phase 1 | Add folders (Core/, API/, etc.) as each phase needs them | Phase 1 |
 | Simple ImGui popup for first-run home world | Lightweight, appears once, consistent with eventual ConfigWindow | Phase 1 |
-| Use `/api/scan` as sole discovery endpoint | Combines velocity filtering, cross-server price comparison, OOS detection, vendor items, and ranking in one call | - Pending |
+| Use `/api/scan` as sole discovery endpoint | Combines velocity filtering, cross-server price comparison, OOS detection, vendor items, and ranking in one call | Phase 3 |
 | Build for daily session workflow (not constant monitoring) | User wants consistent daily profit, not max-ROI hunting | - Pending |
-| JSON file persistence for session state | Session state is simple (5–10 items, checkboxes); no query complexity needed | - Pending |
-| OOS priority built into scan params | `show_out_stock=true` surfaces zero-listing items without custom logic | - Pending |
-| Vendor items included by default | `include_vendor=true` catches NPC-purchased flips players overlook | - Pending |
+| JSON file persistence for scan cache | Cache stores raw scan response and derived route under Dalamud plugin config data | Phase 3 |
+| OOS priority built into scan params | `show_out_stock=true` surfaces zero-listing items without custom logic | Phase 3 |
+| Vendor items included by default | `include_vendor=true` catches NPC-purchased flips players overlook | Phase 3 |
 
 ---
-*Last updated: 2026-05-04 after Phase 1 discussion*
+*Last updated: 2026-05-07 after Phase 3 execution*
