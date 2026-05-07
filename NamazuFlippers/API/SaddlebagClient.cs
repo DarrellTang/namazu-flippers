@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Dalamud.Plugin.Services;
@@ -150,51 +151,60 @@ public sealed class SaddlebagClient
         return clone;
     }
 
+    // home_server_price uses 999_999_999 as a sentinel for out-of-stock items.
+    private const int OutOfStockSentinel = 900_000_000;
+
     private static ScanResponse NormalizeScanResponse(string body, int statusCode)
     {
         if (string.IsNullOrWhiteSpace(body))
             throw new ApiException("API returned an empty response.", statusCode, isRetryable: false);
 
+        RawScanResponse? raw;
         try
         {
-            using var document = JsonDocument.Parse(body);
-            var root = document.RootElement;
-
-            if (root.ValueKind == JsonValueKind.Array)
-                return new ScanResponse { Items = DeserializeItems(root) };
-
-            if (root.ValueKind == JsonValueKind.Object)
-            {
-                if (TryGetArrayProperty(root, "items", out var items) ||
-                    TryGetArrayProperty(root, "results", out items) ||
-                    TryGetArrayProperty(root, "data", out items))
-                {
-                    return new ScanResponse { Items = DeserializeItems(items) };
-                }
-
-                var response = JsonSerializer.Deserialize(
-                    root.GetRawText(),
-                    ApiJsonContext.Default.ScanResponse);
-
-                if (response != null)
-                    return response;
-            }
+            raw = JsonSerializer.Deserialize(body, ApiJsonContext.Default.RawScanResponse);
         }
         catch (JsonException ex)
         {
             throw new ApiException("API returned invalid JSON.", ex, statusCode, isRetryable: false);
         }
 
-        throw new ApiException("API response shape did not contain scan items.", statusCode, isRetryable: false);
+        if (raw == null)
+            throw new ApiException("API response was null.", statusCode, isRetryable: false);
+
+        var items = (raw.Data ?? []).Select(MapItem).ToList();
+        return new ScanResponse { Items = items };
     }
 
-    private static bool TryGetArrayProperty(JsonElement root, string propertyName, out JsonElement value) =>
-        root.TryGetProperty(propertyName, out value) && value.ValueKind == JsonValueKind.Array;
+    private static ScanItem MapItem(RawScanItem raw)
+    {
+        int.TryParse(raw.ItemId, NumberStyles.Integer, CultureInfo.InvariantCulture, out var itemId);
 
-    private static List<ScanItem> DeserializeItems(JsonElement element) =>
-        JsonSerializer.Deserialize(
-            element.GetRawText(),
-            ApiJsonContext.Default.ListScanItem) ?? [];
+        double.TryParse(raw.SaleRates, NumberStyles.Float, CultureInfo.InvariantCulture, out var salesPerHour);
+        var salesPerDay = salesPerHour * 24.0;
+
+        var isOutOfStock = raw.HomeServerPrice >= OutOfStockSentinel;
+        var homePrice = isOutOfStock ? 0 : raw.HomeServerPrice;
+
+        var expectedDailyProfit = 0;
+        if (!isOutOfStock && raw.ProfitAmount > 0 && salesPerDay > 0)
+        {
+            var product = raw.ProfitAmount * salesPerDay;
+            expectedDailyProfit = product >= int.MaxValue ? int.MaxValue : (int)product;
+        }
+
+        return new ScanItem
+        {
+            ItemId = itemId,
+            Name = raw.RealName,
+            HomePrice = homePrice,
+            CheapestServer = raw.Server,
+            CheapestPrice = raw.Ppu,
+            SalesPerDay = salesPerDay,
+            ExpectedDailyProfit = expectedDailyProfit,
+            OutOfStock = isOutOfStock,
+        };
+    }
 }
 
 /// <summary>
