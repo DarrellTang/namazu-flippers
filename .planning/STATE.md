@@ -4,14 +4,14 @@ milestone: v1.0
 milestone_name: milestone
 status: executing
 stopped_at: Phase 4 context gathered
-last_updated: "2026-05-07T06:43:43.585Z"
-last_activity: 2026-05-07 -- Phase 04 planning complete
+last_updated: "2026-05-07T06:50:43.461Z"
+last_activity: 2026-05-07
 progress:
   total_phases: 7
   completed_phases: 3
   total_plans: 9
-  completed_plans: 5
-  percent: 56
+  completed_plans: 6
+  percent: 67
 ---
 
 # Project State
@@ -21,18 +21,18 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-07)
 
 **Core value:** A single button gives you today's best arbitrage route. Follow it, buy, list, done in under 20 minutes. Every day.
-**Current focus:** Phase 4 — Core UI
+**Current focus:** Phase 04 — core-ui
 **Build model:** macOS local builds are not expected to compile without Dalamud SDK assemblies; use source validation locally and GitHub Actions as the authoritative compiler/package gate.
 
 ## Current Position
 
-Phase: 4
-Plan: Not started
+Phase: 04 (core-ui) — EXECUTING
+Plan: 2 of 4
 Next: 04 — Core UI
 Status: Ready to execute
-Last activity: 2026-05-07 -- Phase 04 planning complete
+Last activity: 2026-05-07
 
-Progress: ████░░░░░░ 43%
+Progress: [███████░░░] 67%
 
 **Phase 1 deliverables:**
 
