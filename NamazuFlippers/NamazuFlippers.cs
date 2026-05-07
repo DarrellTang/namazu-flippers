@@ -2,6 +2,8 @@ using Dalamud.Game.Command;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
 using NamazuFlippers.API;
+using NamazuFlippers.Core;
+using NamazuFlippers.Data;
 
 namespace NamazuFlippers;
 
@@ -15,12 +17,16 @@ public class NamazuFlippers : IDalamudPlugin
 
     private readonly IDalamudPluginInterface pluginInterface;
     private readonly ICommandManager commandManager;
+    private readonly IClientState clientState;
     private readonly IPluginLog log;
 
     private readonly RateLimiter rateLimiter;
     private readonly SaddlebagClient apiClient;
+    private readonly ScanEngine scanEngine;
+    private readonly CancellationTokenSource scanCts = new();
 
     private readonly FirstRunWindow firstRunWindow;
+    private int scanInProgress;
     private bool isVisible;
 
     /// <summary>
@@ -29,44 +35,50 @@ public class NamazuFlippers : IDalamudPlugin
     /// </summary>
     public string? LastApiError { get; private set; }
 
+    public ScanEngineResult? LatestScanResult { get; private set; }
+
     public Configuration Configuration { get; set; }
 
     public NamazuFlippers(
         IDalamudPluginInterface pluginInterface,
         ICommandManager commandManager,
+        IClientState clientState,
         IPluginLog log)
     {
         this.pluginInterface = pluginInterface;
         this.commandManager = commandManager;
+        this.clientState = clientState;
         this.log = log;
 
         Configuration = pluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
 
         rateLimiter = new RateLimiter(TimeSpan.FromMilliseconds(1000));
         apiClient = new SaddlebagClient(Configuration, log, rateLimiter);
+        var routeOptimizer = new RouteOptimizer();
+        var cacheStore = new ScanCacheStore(pluginInterface, Configuration, log);
+        scanEngine = new ScanEngine(apiClient, Configuration, log, routeOptimizer, cacheStore);
 
         firstRunWindow = new FirstRunWindow(Configuration, pluginInterface, log, () => isVisible);
 
-        // Phase 2: SaddlebagClient is instantiated and ready.
-        // Phase 3 ScanEngine will call apiClient.ScanAsync().
-        // For now, a placeholder demonstrates the fire-and-forget error surfacing pattern:
-        // _ = Task.Run(async () => {
-        //     try { var result = await apiClient.ScanAsync(CancellationToken.None); LastApiError = null; }
-        //     catch (ApiException ex) { log.Error($"/nflip: {ex.Message}"); LastApiError = ex.Message; }
-        // });
-
         commandManager.AddHandler(CommandName, new CommandInfo(OnCommand)
         {
-            HelpMessage = "Toggle the Namazu Flippers daily arbitrage route window."
+            HelpMessage = "Toggle the Namazu Flippers daily arbitrage route window. Use /nflip scan to refresh the route."
         });
 
+        clientState.Login += OnLogin;
         pluginInterface.UiBuilder.Draw += OnDraw;
+
+        if (clientState.IsLoggedIn)
+            QueueAutoScan();
 
         log.Information("Namazu Flippers loaded. Use /nflip to get started.");
     }
 
     public void Dispose()
     {
+        clientState.Login -= OnLogin;
+        scanCts.Cancel();
+        scanCts.Dispose();
         pluginInterface.UiBuilder.Draw -= OnDraw;
         commandManager.RemoveHandler(CommandName);
         log.Information("Namazu Flippers unloaded.");
@@ -74,6 +86,19 @@ public class NamazuFlippers : IDalamudPlugin
 
     private void OnCommand(string command, string arguments)
     {
+        var subcommand = arguments.Trim();
+        if (subcommand.Equals("scan", StringComparison.OrdinalIgnoreCase))
+        {
+            _ = RunScanAsync(forceRefresh: true, scanCts.Token);
+            return;
+        }
+
+        if (!string.IsNullOrEmpty(subcommand))
+        {
+            log.Information("/nflip: Unknown command. Use /nflip or /nflip scan.");
+            return;
+        }
+
         isVisible = !isVisible;
         log.Information(isVisible
             ? "Namazu Flippers UI opened."
@@ -89,5 +114,60 @@ public class NamazuFlippers : IDalamudPlugin
         firstRunWindow.Draw();
 
         // Future: routeWindow.Draw(), configWindow.Draw(), etc.
+    }
+
+    private void OnLogin() => QueueAutoScan();
+
+    private void QueueAutoScan()
+    {
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(TimeSpan.FromSeconds(3), scanCts.Token);
+                await RunScanAsync(forceRefresh: false, scanCts.Token);
+            }
+            catch (OperationCanceledException)
+            {
+                // Normal plugin shutdown path.
+            }
+        }, scanCts.Token);
+    }
+
+    private async Task RunScanAsync(bool forceRefresh, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(Configuration.HomeWorld))
+        {
+            log.Information("/nflip: set your home world before scanning.");
+            return;
+        }
+
+        if (Interlocked.Exchange(ref scanInProgress, 1) == 1)
+        {
+            log.Information("/nflip: scan already running.");
+            return;
+        }
+
+        try
+        {
+            var result = await scanEngine.GetRouteAsync(forceRefresh, ct);
+            LatestScanResult = result;
+            LastApiError = result.Status == ScanEngineStatus.Error ? result.UserMessage : null;
+
+            log.Information(
+                "/nflip: scan {Status}; {Stops} stops, {Items} items, {Profit:n0} expected daily profit.",
+                result.Status,
+                result.RouteStops.Count,
+                result.Opportunities.Count,
+                result.TotalExpectedDailyProfit);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            log.Information("/nflip: scan cancelled.");
+        }
+        finally
+        {
+            Interlocked.Exchange(ref scanInProgress, 0);
+        }
     }
 }
