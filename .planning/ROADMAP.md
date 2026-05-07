@@ -59,7 +59,7 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 03-01: Implement ScanEngine (API call → parse → rank → top N)
+- [x] 03-01: Implement ScanEngine (API call → parse → rank → top N)
 - [ ] 03-02: Implement RouteOptimizer (group by server, minimize hops, world/DC data)
 
 ### Phase 4: Core UI
