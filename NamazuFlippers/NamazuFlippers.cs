@@ -1,9 +1,11 @@
 using Dalamud.Game.Command;
+using Dalamud.Interface.Windowing;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
 using NamazuFlippers.API;
 using NamazuFlippers.Core;
 using NamazuFlippers.Data;
+using NamazuFlippers.UI;
 
 namespace NamazuFlippers;
 
@@ -25,9 +27,11 @@ public class NamazuFlippers : IDalamudPlugin
     private readonly ScanEngine scanEngine;
     private readonly CancellationTokenSource scanCts = new();
 
+    private readonly WindowSystem windowSystem = new("NamazuFlippers");
     private readonly FirstRunWindow firstRunWindow;
+    private readonly DailyRouteWindow dailyRouteWindow;
+    private readonly ConfigWindow configWindow;
     private int scanInProgress;
-    private bool isVisible;
 
     /// <summary>
     /// Set when an API call fails. Rendered as an in-window error banner by Phase 4's OnDraw.
@@ -38,6 +42,15 @@ public class NamazuFlippers : IDalamudPlugin
     public ScanEngineResult? LatestScanResult { get; private set; }
 
     public Configuration Configuration { get; set; }
+
+    /// <summary>True while a scan is currently running. Used by DailyRouteWindow to disable Rescan.</summary>
+    public bool ScanInProgress => Interlocked.CompareExchange(ref scanInProgress, 0, 0) == 1;
+
+    /// <summary>Public wrapper around RunScanAsync(forceRefresh: true). Called by DailyRouteWindow's Rescan button (wired in 04-02).</summary>
+    public Task RescanAsync(CancellationToken ct) => RunScanAsync(true, ct);
+
+    /// <summary>Opens the ConfigWindow. Called by DailyRouteWindow's in-window Settings button (D-07).</summary>
+    public void OpenConfigWindow() => configWindow.IsOpen = true;
 
     public NamazuFlippers(
         IDalamudPluginInterface pluginInterface,
@@ -58,7 +71,17 @@ public class NamazuFlippers : IDalamudPlugin
         var cacheStore = new ScanCacheStore(pluginInterface, Configuration, log);
         scanEngine = new ScanEngine(apiClient, Configuration, log, routeOptimizer, cacheStore);
 
-        firstRunWindow = new FirstRunWindow(Configuration, pluginInterface, log, () => isVisible);
+        firstRunWindow = new FirstRunWindow(Configuration, pluginInterface, log);
+        dailyRouteWindow = new DailyRouteWindow(this, log);
+        configWindow = new ConfigWindow(this, pluginInterface, log);
+
+        windowSystem.AddWindow(firstRunWindow);
+        windowSystem.AddWindow(dailyRouteWindow);
+        windowSystem.AddWindow(configWindow);
+
+        // Show first-run popup on plugin load when home world is unset.
+        if (string.IsNullOrEmpty(Configuration.HomeWorld))
+            firstRunWindow.IsOpen = true;
 
         commandManager.AddHandler(CommandName, new CommandInfo(OnCommand)
         {
@@ -66,7 +89,8 @@ public class NamazuFlippers : IDalamudPlugin
         });
 
         clientState.Login += OnLogin;
-        pluginInterface.UiBuilder.Draw += OnDraw;
+        pluginInterface.UiBuilder.Draw += windowSystem.Draw;
+        pluginInterface.UiBuilder.OpenConfigUi += OnOpenConfigUi;
 
         if (clientState.IsLoggedIn)
             QueueAutoScan();
@@ -79,7 +103,9 @@ public class NamazuFlippers : IDalamudPlugin
         clientState.Login -= OnLogin;
         scanCts.Cancel();
         scanCts.Dispose();
-        pluginInterface.UiBuilder.Draw -= OnDraw;
+        pluginInterface.UiBuilder.Draw -= windowSystem.Draw;
+        pluginInterface.UiBuilder.OpenConfigUi -= OnOpenConfigUi;
+        windowSystem.RemoveAllWindows();
         commandManager.RemoveHandler(CommandName);
         log.Information("Namazu Flippers unloaded.");
     }
@@ -99,22 +125,19 @@ public class NamazuFlippers : IDalamudPlugin
             return;
         }
 
-        isVisible = !isVisible;
-        log.Information(isVisible
+        dailyRouteWindow.IsOpen = !dailyRouteWindow.IsOpen;
+        log.Information(dailyRouteWindow.IsOpen
             ? "Namazu Flippers UI opened."
             : "Namazu Flippers UI closed.");
 
-        // Placeholder — DailyRouteWindow and ConfigWindow are built in Phase 4.
-        if (isVisible && string.IsNullOrEmpty(Configuration.HomeWorld))
+        if (dailyRouteWindow.IsOpen && string.IsNullOrEmpty(Configuration.HomeWorld))
+        {
+            firstRunWindow.IsOpen = true;
             log.Information("Set your home world in the popup to get started.");
+        }
     }
 
-    private void OnDraw()
-    {
-        firstRunWindow.Draw();
-
-        // Future: routeWindow.Draw(), configWindow.Draw(), etc.
-    }
+    private void OnOpenConfigUi() => configWindow.IsOpen = true;
 
     private void OnLogin() => QueueAutoScan();
 

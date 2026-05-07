@@ -200,7 +200,7 @@ require_all_patterns "NamazuFlippers/NamazuFlippers.cs" "manual scan command byp
   "RunScanAsync\\(forceRefresh: true, scanCts\\.Token\\)"
 require_all_patterns "NamazuFlippers/NamazuFlippers.cs" "bare command still toggles UI" \
   "if \\(!string\\.IsNullOrEmpty\\(subcommand\\)\\)" \
-  "isVisible = !isVisible"
+  "dailyRouteWindow\\.IsOpen = !dailyRouteWindow\\.IsOpen"
 require_all_patterns "NamazuFlippers/NamazuFlippers.cs" "duplicate scans are ignored and released" \
   "Interlocked\\.Exchange\\(ref scanInProgress, 1\\) == 1" \
   "scan already running" \
