@@ -13,16 +13,12 @@ A single button gives you today's best arbitrage route. Follow it, buy, list, do
 ### Validated
 
 - PLUG-01, PLUG-02, PLUG-03: Plugin shell requirements validated in Phase 1
-- CONF-01, CONF-09: Home world prompt and config persistence validated in-game
-- CONF-02 through CONF-08: Configuration model ready; ConfigWindow UI in Phase 4
+- CONF-01 through CONF-09: Full ConfigWindow UI for all 14 settings + home world prompt validated in Phase 4 (in-game UAT pending)
 - SCAN-01, SCAN-02, SCAN-03, SCAN-04: Scan engine, route optimizer, cache, and manual refresh wiring validated in Phase 3
+- UI-01 through UI-08: Core UI (DailyRouteWindow, ConfigWindow, WindowSystem, profit tally, progress bars, OOS visuals, auto-collapse) validated in Phase 4 — automated checks 8/8, in-game UAT deferred to `04-HUMAN-UAT.md`
 
 ### Active
 
-- [ ] PLUGIN-01: User can configure home world, profit thresholds, category filters, and API settings via a config window
-- [ ] UI-01: DailyRouteWindow shows today's route: which servers to visit, what to buy at each, prices, and expected profit
-- [ ] UI-02: One-click checkboxes mark items as bought/listed with running profit tally
-- [ ] UI-03: OOS (out-of-stock) items are visually highlighted as priority opportunities
 - [ ] SESSION-01: Session state (route, bought/listed status, profit tally) persists locally in JSON
 - [ ] OPT-01: Optional shortage-predictor supplement via `/api/ffxiv/shortagefutures`
 - [ ] INTEG-01: Optional market board hook detects when player is at market board
@@ -85,4 +81,4 @@ Login → open plugin → see today's route → travel to server → buy items �
 | CI is the authoritative build gate | Developer workspace is macOS; local compile lacks Dalamud SDK assemblies, while CI downloads Dalamud and packages releases | Phase 3 |
 
 ---
-*Last updated: 2026-05-07 after Phase 3 validation/build-doc update*
+*Last updated: 2026-05-07 after Phase 4 (Core UI) execution — DailyRouteWindow + ConfigWindow shipped; in-game UAT pending.*
