@@ -47,6 +47,7 @@ A single button gives you today's best arbitrage route. Follow it, buy, list, do
 - **API**: Saddlebag Exchange REST API (`/api/scan` primary, `/api/ffxiv/shortagefutures` optional)
 - **Data source**: Universalis (crowdsourced market board data)
 - **Persistence**: Local JSON file for session state and scan cache
+- **Build verification**: GitHub Actions is the authoritative compiler/package gate. macOS local builds are source-validation only because `net10.0-windows` + `Dalamud.NET.Sdk` require a configured Dalamud SDK path.
 
 **Key technical decisions already made:**
 
@@ -62,10 +63,11 @@ Login → open plugin → see today's route → travel to server → buy items �
 
 - **Dalamud API**: Must target current stable Dalamud API version; plugin loads within XIV Launcher sandbox
 - **Saddlebag Rate Limits**: `/api/scan` has no Universalis warning (safe); shortage-predictor also safe. Still implement polite rate limiting.
-- **.NET Version**: Dalamud plugins target .NET 8+ via Dalamud SDK
+- **.NET Version**: Current project targets `net10.0-windows` via `Dalamud.NET.Sdk/15.0.0`
 - **UI Framework**: ImGui via Dalamud's `PluginUI` / `WindowSystem` — no HTML/CSS, no WPF
 - **Distribution**: Plugin distributed via Dalamud plugin repository (requires manifest + approval)
 - **Single Player**: Plugin serves one player on one home world; no multi-character or multi-account support needed
+- **Local macOS limitation**: Do not treat macOS `dotnet build` failures caused by missing Dalamud assemblies as implementation failures. Use `bash tests/phase03_nyquist.sh` locally and rely on CI for compile/package verification.
 
 ## Key Decisions
 
@@ -80,6 +82,7 @@ Login → open plugin → see today's route → travel to server → buy items �
 | JSON file persistence for scan cache | Cache stores raw scan response and derived route under Dalamud plugin config data | Phase 3 |
 | OOS priority built into scan params | `show_out_stock=true` surfaces zero-listing items without custom logic | Phase 3 |
 | Vendor items included by default | `include_vendor=true` catches NPC-purchased flips players overlook | Phase 3 |
+| CI is the authoritative build gate | Developer workspace is macOS; local compile lacks Dalamud SDK assemblies, while CI downloads Dalamud and packages releases | Phase 3 |
 
 ---
-*Last updated: 2026-05-07 after Phase 3 execution*
+*Last updated: 2026-05-07 after Phase 3 validation/build-doc update*

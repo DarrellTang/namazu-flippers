@@ -73,7 +73,7 @@ No accepted risks.
 | Closed | 7 |
 | Open | 0 |
 
-Verification note: `dotnet build NamazuFlippers/NamazuFlippers.csproj` was attempted, but this local environment cannot resolve Dalamud SDK assemblies from `/`; the first compiler diagnostics are missing `Dalamud` references. Deterministic source evidence checks passed for the mitigation points above.
+Verification note: deterministic source evidence checks passed for the mitigation points above. `dotnet build NamazuFlippers/NamazuFlippers.csproj` is not expected to pass in the local macOS workspace unless Dalamud SDK assemblies are configured; GitHub Actions is the authoritative compiler/package verification path because it downloads Dalamud into `DALAMUD_HOME` before building.
 
 ---
 

@@ -4,7 +4,7 @@ milestone: v1.0
 milestone_name: milestone
 status: ready_to_plan
 stopped_at: Phase 3 complete
-last_updated: "2026-05-07T02:55:59.415Z"
+last_updated: "2026-05-07T03:20:00.000Z"
 last_activity: 2026-05-07
 progress:
   total_phases: 7
@@ -22,6 +22,7 @@ See: .planning/PROJECT.md (updated 2026-05-07)
 
 **Core value:** A single button gives you today's best arbitrage route. Follow it, buy, list, done in under 20 minutes. Every day.
 **Current focus:** Phase 4 — Core UI
+**Build model:** macOS local builds are not expected to compile without Dalamud SDK assemblies; use source validation locally and GitHub Actions as the authoritative compiler/package gate.
 
 ## Current Position
 
@@ -42,6 +43,12 @@ Progress: ████░░░░░░ 43%
 - FirstRunWindow with 85-world validation
 - GitHub Actions CI/CD: cross-platform build (Ubuntu), auto-versioned releases, pluginmaster.json for Dalamud custom repo
 - .gitignore for build artifacts
+
+**Phase 3 validation/build status:**
+
+- `tests/phase03_nyquist.sh` provides source-level automated validation for SCAN-01 through SCAN-04.
+- GitHub Actions downloads Dalamud into `DALAMUD_HOME` and should be used for compile/package verification.
+- macOS `dotnet build NamazuFlippers/NamazuFlippers.csproj` fails in this workspace because Dalamud assemblies are unavailable locally; this is a known environment limitation, not a project blocker.
 
 ## Performance Metrics
 
@@ -74,7 +81,7 @@ None.
 
 ### Blockers/Concerns
 
-None.
+No implementation blockers. Local macOS compiler verification is intentionally replaced by source validation plus CI build verification.
 
 ## Session Continuity
 

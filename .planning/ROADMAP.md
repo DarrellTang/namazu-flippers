@@ -134,9 +134,15 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Plugin Shell &amp; Configuration | 2/2 | ✓ Complete | 2026-05-06 |
-| 2. API Integration | 1/1 | Complete   | 2026-05-06 |
-| 3. Scan Engine & Route Optimizer | 0/2 | Not started | - |
+| 2. API Integration | 2/2 | ✓ Complete | 2026-05-06 |
+| 3. Scan Engine & Route Optimizer | 2/2 | ✓ Complete | 2026-05-07 |
 | 4. Core UI | 0/3 | Not started | - |
 | 5. Session Persistence | 0/1 | Not started | - |
 | 6. Optional Features | 0/1 | Not started | - |
 | 7. Polish & Ship | 0/2 | Not started | - |
+
+## Build Verification Policy
+
+- GitHub Actions is the authoritative compile/package gate. The workflow downloads Dalamud into `DALAMUD_HOME`, builds on Ubuntu, packages `NamazuFlippers.zip`, creates a release, and updates `pluginmaster.json`.
+- macOS local builds are source-validation only. `dotnet build NamazuFlippers/NamazuFlippers.csproj` fails locally when Dalamud assemblies are absent, which is expected for this developer environment.
+- Use `bash tests/phase03_nyquist.sh` for local Phase 3 source validation, then rely on CI for compile/package verification.

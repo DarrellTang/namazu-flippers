@@ -18,19 +18,19 @@ Per-phase validation contract for feedback sampling during execution.
 
 | Property | Value |
 |----------|-------|
-| **Framework** | Bash source-level Nyquist validation plus Dalamud build when SDK is configured |
+| **Framework** | Bash source-level Nyquist validation plus GitHub Actions compile/package build |
 | **Config file** | `tests/phase03_nyquist.sh`; `NamazuFlippers/NamazuFlippers.csproj` |
 | **Quick run command** | `bash tests/phase03_nyquist.sh` |
-| **Full suite command** | `bash tests/phase03_nyquist.sh && dotnet build NamazuFlippers/NamazuFlippers.csproj` |
-| **Estimated runtime** | ~1 second for source validation; ~30 seconds for build when Dalamud SDK is available |
+| **Full suite command** | `bash tests/phase03_nyquist.sh` locally; GitHub Actions build for compiler/package verification |
+| **Estimated runtime** | ~1 second for source validation; CI build/package runtime varies |
 
 ---
 
 ## Sampling Rate
 
 - **After every task commit:** Run `bash tests/phase03_nyquist.sh`
-- **After every plan wave:** Run `bash tests/phase03_nyquist.sh && dotnet build NamazuFlippers/NamazuFlippers.csproj`
-- **Before `$gsd-verify-work`:** Run source validation locally and build in a configured Dalamud environment
+- **After every plan wave:** Run `bash tests/phase03_nyquist.sh`; check GitHub Actions once pushed
+- **Before `$gsd-verify-work`:** Run source validation locally and confirm GitHub Actions build/package result
 - **Max feedback latency:** 60 seconds
 
 ---
@@ -64,7 +64,7 @@ Existing repo infrastructure now covers Phase 3 source-level validation:
 
 | Behavior | Requirement | Why Manual | Test Instructions |
 |----------|-------------|------------|-------------------|
-| Build/plugin load in Dalamud environment | SCAN-01 / SCAN-02 / SCAN-03 / SCAN-04 | Local workspace lacks Dalamud SDK assemblies, so `dotnet build` cannot complete here | Configure `DALAMUD_HOME` or build from the Dalamud dev environment, then run `dotnet build NamazuFlippers/NamazuFlippers.csproj` |
+| Build/plugin load in Dalamud environment | SCAN-01 / SCAN-02 / SCAN-03 / SCAN-04 | Local macOS workspace lacks Dalamud SDK assemblies, so `dotnet build` cannot complete here | Use GitHub Actions as the authoritative compile/package check; for in-game local testing, install the CI release artifact or build from a configured Windows/Dalamud dev environment |
 | Character-login auto-scan | SCAN-03 | Requires Dalamud runtime and logged-in character state | Install plugin, configure home world, log into a character, and verify scan starts after login/startup while skipping title screen and missing home-world setup |
 | Manual `/nflip scan` | SCAN-04 | Requires Dalamud command runtime | Run `/nflip scan`, verify it bypasses cache, logs concise status, and ignores duplicate concurrent scans |
 | Stale-cache fallback on API failure | SCAN-03 | Requires saved plugin cache plus induced API/network failure | Create valid cache, force a refresh failure, and verify stale route is retained and marked `UsingStaleCache` |
@@ -95,7 +95,7 @@ Build status:
 dotnet build NamazuFlippers/NamazuFlippers.csproj
 ```
 
-Result: blocked in this local environment because Dalamud assemblies are not available (`Dalamud.NET.Sdk: root at /`, followed by missing `Dalamud` references). This remains manual runtime/dependency verification debt.
+Result: blocked in this local macOS environment because Dalamud assemblies are not available (`Dalamud.NET.Sdk: root at /`, followed by missing `Dalamud` references). This is expected for the developer workspace. GitHub Actions is the authoritative compile/package verification path because it downloads the Dalamud SDK before building.
 
 ---
 
