@@ -75,12 +75,13 @@ Plans:
   6. OOS items are visually distinct (color/icon)
   7. Completed server stops auto-collapse
   8. ConfigWindow exposes all settings from CONF-01 through CONF-09
-**Plans**: 3 plans
+**Plans**: 4 plans
 
 Plans:
-- [ ] 04-01: Build DailyRouteWindow layout and item rendering
-- [ ] 04-02: Implement buy/list interactions, profit tally, and progress tracking
-- [ ] 04-03: Build ConfigWindow with all settings controls
+- [ ] 04-00-PLAN.md — Create tests/phase04_nyquist.sh source-validation script (Wave 0)
+- [ ] 04-01-PLAN.md — Build WindowSystem foundation, DailyRouteWindow read-only layout, FirstRunWindow migration (UI-01)
+- [ ] 04-02-PLAN.md — Wire buy/list checkboxes, profit tally, progress, OOS, auto-collapse (UI-02..UI-07)
+- [ ] 04-03-PLAN.md — Build ConfigWindow with snapshot/dirty/discard and all CONF-01..09 controls (UI-08)
 
 ### Phase 5: Session Persistence
 **Goal**: Session state survives game restarts; scan cache avoids redundant API calls
@@ -136,7 +137,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | 1. Plugin Shell &amp; Configuration | 2/2 | ✓ Complete | 2026-05-06 |
 | 2. API Integration | 2/2 | ✓ Complete | 2026-05-06 |
 | 3. Scan Engine & Route Optimizer | 2/2 | ✓ Complete | 2026-05-07 |
-| 4. Core UI | 0/3 | Not started | - |
+| 4. Core UI | 0/4 | Not started | - |
 | 5. Session Persistence | 0/1 | Not started | - |
 | 6. Optional Features | 0/1 | Not started | - |
 | 7. Polish & Ship | 0/2 | Not started | - |
