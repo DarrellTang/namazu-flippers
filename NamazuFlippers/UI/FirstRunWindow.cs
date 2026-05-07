@@ -1,35 +1,35 @@
+using Dalamud.Interface.Windowing;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
 using Dalamud.Bindings.ImGui;
 using NamazuFlippers.Data;
 using System.Numerics;
 
-namespace NamazuFlippers;
+namespace NamazuFlippers.UI;
 
 /// <summary>
 /// First-run home world selection popup. Offers an alphabetical dropdown of all 85 FFXIV worlds.
 /// Appears automatically on first /nflip when no home world is configured.
 /// Dismisses after a world is selected and confirmed.
+/// Migrated from project root to UI/ in plan 04-01: now extends Dalamud.Interface.Windowing.Window.
 /// </summary>
-public class FirstRunWindow
+public class FirstRunWindow : Window
 {
     private readonly Configuration configuration;
     private readonly IDalamudPluginInterface pluginInterface;
     private readonly IPluginLog log;
-    private readonly Func<bool> isVisible;
 
     private int selectedWorldIndex = -1;
 
     public FirstRunWindow(
         Configuration configuration,
         IDalamudPluginInterface pluginInterface,
-        IPluginLog log,
-        Func<bool> isVisible)
+        IPluginLog log)
+        : base("Welcome to Namazu Flippers", ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoResize)
     {
         this.configuration = configuration;
         this.pluginInterface = pluginInterface;
         this.log = log;
-        this.isVisible = isVisible;
     }
 
     /// <summary>
@@ -38,13 +38,15 @@ public class FirstRunWindow
     public bool IsPending => string.IsNullOrEmpty(configuration.HomeWorld);
 
     /// <summary>
-    /// Renders the first-run popup if pending and the plugin UI is visible.
-    /// Called each frame from the plugin's draw callback.
+    /// Renders the first-run popup if pending. WindowSystem manages IsOpen visibility.
     /// </summary>
-    public void Draw()
+    public override void Draw()
     {
-        if (!IsPending || !isVisible())
+        if (!IsPending)
+        {
+            IsOpen = false;
             return;
+        }
 
         ImGui.OpenPopup("Welcome to Namazu Flippers");
 
@@ -93,6 +95,7 @@ public class FirstRunWindow
                 log.Information($"Home world set to: {configuration.HomeWorld}");
 
                 ImGui.CloseCurrentPopup();
+                IsOpen = false;
             }
 
             ImGui.EndPopup();
