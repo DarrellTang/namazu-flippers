@@ -1,6 +1,7 @@
 using Dalamud.Plugin.Services;
 using NamazuFlippers.API;
 using NamazuFlippers.API.Models;
+using NamazuFlippers.Data;
 
 namespace NamazuFlippers.Core;
 
@@ -11,16 +12,82 @@ public sealed class ScanEngine
 {
     private readonly SaddlebagClient client;
     private readonly Configuration configuration;
+    private readonly RouteOptimizer? routeOptimizer;
+    private readonly ScanCacheStore? cacheStore;
     private readonly IPluginLog log;
 
     public ScanEngine(SaddlebagClient client, Configuration configuration, IPluginLog log)
+        : this(client, configuration, log, routeOptimizer: null, cacheStore: null)
+    {
+    }
+
+    public ScanEngine(
+        SaddlebagClient client,
+        Configuration configuration,
+        IPluginLog log,
+        RouteOptimizer? routeOptimizer,
+        ScanCacheStore? cacheStore)
     {
         this.client = client ?? throw new ArgumentNullException(nameof(client));
         this.configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
+        this.routeOptimizer = routeOptimizer;
+        this.cacheStore = cacheStore;
         this.log = log ?? throw new ArgumentNullException(nameof(log));
     }
 
-    public async Task<ScanEngineResult> ScanFreshAsync(CancellationToken ct = default)
+    public async Task<ScanEngineResult> GetRouteAsync(bool forceRefresh, CancellationToken ct = default)
+    {
+        if (!forceRefresh && cacheStore != null)
+        {
+            var validCache = await cacheStore.LoadValidAsync(ct);
+            if (validCache != null)
+            {
+                validCache.DerivedResult.Status = ScanEngineStatus.UsingCache;
+                validCache.DerivedResult.IsFresh = true;
+                validCache.DerivedResult.UserMessage = "Using cached route.";
+                log.Information("/nflip: loaded valid scan cache.");
+                return validCache.DerivedResult;
+            }
+        }
+
+        var fresh = await ScanFreshCoreAsync(ct);
+
+        if (fresh.Result.Status == ScanEngineStatus.Success)
+        {
+            var routeStops = routeOptimizer?.Optimize(fresh.Result.Opportunities, configuration).ToList() ?? [];
+            fresh.Result.RouteStops = routeStops;
+            fresh.Result.TotalExpectedDailyProfit = routeStops.Sum(stop => stop.TotalExpectedDailyProfit);
+
+            if (cacheStore != null && fresh.RawResponse != null)
+                await cacheStore.SaveAsync(fresh.RawResponse, fresh.Result, ct);
+        }
+        else if (fresh.Result.Status == ScanEngineStatus.Empty)
+        {
+            if (cacheStore != null && fresh.RawResponse != null)
+                await cacheStore.SaveAsync(fresh.RawResponse, fresh.Result, ct);
+        }
+        else if (cacheStore != null)
+        {
+            var staleCache = await cacheStore.LoadAnyAsync(ct);
+            if (staleCache != null)
+            {
+                staleCache.DerivedResult.Status = ScanEngineStatus.UsingStaleCache;
+                staleCache.DerivedResult.IsFresh = false;
+                staleCache.DerivedResult.UserMessage =
+                    "Refresh failed, so I am keeping the last saved route for now.";
+                staleCache.DerivedResult.TechnicalDetails = fresh.Result.TechnicalDetails;
+                log.Warning("/nflip: refresh failed; using stale scan cache.");
+                return staleCache.DerivedResult;
+            }
+        }
+
+        return fresh.Result;
+    }
+
+    public async Task<ScanEngineResult> ScanFreshAsync(CancellationToken ct = default) =>
+        (await ScanFreshCoreAsync(ct)).Result;
+
+    private async Task<(ScanResponse? RawResponse, ScanEngineResult Result)> ScanFreshCoreAsync(CancellationToken ct)
     {
         try
         {
@@ -28,7 +95,7 @@ public sealed class ScanEngine
             var items = response.Items ?? [];
 
             if (items.Count == 0)
-                return EmptyResult("No opportunities matched your current settings.");
+                return (response, EmptyResult("No opportunities matched your current settings."));
 
             var opportunities = items
                 .Where(IsUsable)
@@ -40,7 +107,7 @@ public sealed class ScanEngine
                 .ToList();
 
             if (opportunities.Count == 0)
-                return EmptyResult("No opportunities matched your current settings.");
+                return (response, EmptyResult("No opportunities matched your current settings."));
 
             var totalExpectedProfit = opportunities.Sum(item => item.ExpectedDailyProfit);
             log.Information(
@@ -48,13 +115,13 @@ public sealed class ScanEngine
                 opportunities.Count,
                 totalExpectedProfit);
 
-            return new ScanEngineResult
+            return (response, new ScanEngineResult
             {
                 Status = ScanEngineStatus.Success,
                 UserMessage = "Route ready.",
                 Opportunities = opportunities,
                 IsFresh = true,
-            };
+            });
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
@@ -64,24 +131,24 @@ public sealed class ScanEngine
         catch (ApiException ex)
         {
             log.Warning("/nflip: API scan failed: {Message}", ex.Message);
-            return new ScanEngineResult
+            return (null, new ScanEngineResult
             {
                 Status = ScanEngineStatus.Error,
                 UserMessage = "I could not refresh market data right now. Try again in a bit.",
                 TechnicalDetails = ex.Message,
                 IsFresh = true,
-            };
+            });
         }
         catch (Exception ex)
         {
             log.Error("/nflip: unexpected scan failure: {Message}", ex.Message);
-            return new ScanEngineResult
+            return (null, new ScanEngineResult
             {
                 Status = ScanEngineStatus.Error,
                 UserMessage = "Something went wrong while scanning. Try again in a bit.",
                 TechnicalDetails = ex.Message,
                 IsFresh = true,
-            };
+            });
         }
     }
 
