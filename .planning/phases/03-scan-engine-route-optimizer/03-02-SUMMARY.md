@@ -56,6 +56,7 @@ Files changed: 10
 | a6b110f | Task 4 | Added cache-aware `ScanEngine.GetRouteAsync` with route optimization, cache save, valid-cache reuse, stale-cache fallback, and empty-result replacement. |
 | 24349ab | Task 5 | Wired `IClientState`, `/nflip scan`, startup/login auto-scan, latest result state, and duplicate scan guard. |
 | 0034f0b | Task 2 follow-up | Switched route stop sorting to explicit `OrderBy(..., comparer)` for compatibility. |
+| 6ebc24f | Review follow-up | Contained cache save failures so a successful fresh route is still returned even if persistence fails. |
 
 ## What Changed
 
@@ -63,6 +64,7 @@ Files changed: 10
 - `RouteOptimizer` groups opportunities by purchase source, orders stops by value, applies the 20 percent friction tie-break, preserves vendor stops, and trims final items to `MaxItemsPerSession`.
 - `ScanCacheStore` writes `scan-cache.json` under `pluginInterface.ConfigDirectory`, validates cache by schema, expiry, and scan-affecting config fingerprint, and avoids storing cache data in `Configuration`.
 - `ScanEngine.GetRouteAsync` uses valid cache for non-forced scans, creates route stops after fresh success, saves fresh success/empty results, and uses stale cache only when refresh fails.
+- Cache save failures are logged as warnings rather than converting an otherwise successful scan into an error.
 - `NamazuFlippers` now preserves bare `/nflip` toggle behavior and adds `/nflip scan` forced refresh, `LatestScanResult`, login/startup auto-scan, cancellation cleanup, and an `Interlocked` duplicate scan guard.
 
 ## Verification
