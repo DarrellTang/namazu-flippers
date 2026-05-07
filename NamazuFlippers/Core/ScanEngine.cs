@@ -117,7 +117,7 @@ public sealed class ScanEngine
                 return (response, EmptyResult("No opportunities matched your current settings."));
 
             var opportunities = items
-                .Where(IsUsable)
+                .Where(item => IsUsable(item, configuration))
                 .OrderByDescending(item => item.ExpectedDailyProfit)
                 .ThenByDescending(item => item.SalesPerDay)
                 .ThenBy(item => item.CheapestPrice)
@@ -182,14 +182,15 @@ public sealed class ScanEngine
         };
     }
 
-    private static bool IsUsable(ScanItem item) =>
+    private static bool IsUsable(ScanItem item, Configuration config) =>
         item.ItemId > 0 &&
         !string.IsNullOrWhiteSpace(item.Name) &&
         !string.IsNullOrWhiteSpace(item.CheapestServer) &&
         item.HomePrice > 0 &&
         item.CheapestPrice > 0 &&
         item.ExpectedDailyProfit > 0 &&
-        item.SalesPerDay > 0;
+        item.SalesPerDay > 0 &&
+        (config.MaxBudgetPerItem <= 0 || item.CheapestPrice <= config.MaxBudgetPerItem);
 
     private static RankedOpportunity ToOpportunity(ScanItem item) => new()
     {

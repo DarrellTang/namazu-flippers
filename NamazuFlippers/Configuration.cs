@@ -58,6 +58,13 @@ public class Configuration : IPluginConfiguration
     /// </summary>
     public int MinDesiredAvgPpu { get; set; } = 10000;
 
+    /// <summary>
+    /// Maximum gil to spend on a single item (per-unit purchase price).
+    /// Items with CheapestPrice above this are filtered out client-side.
+    /// Set to 0 to disable the budget cap.
+    /// </summary>
+    public int MaxBudgetPerItem { get; set; } = 1_000_000;
+
     // === CONF-03: Velocity Floor ===
 
     /// <summary>

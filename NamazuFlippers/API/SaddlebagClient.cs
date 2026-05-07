@@ -176,20 +176,35 @@ public sealed class SaddlebagClient
         return new ScanResponse { Items = items };
     }
 
+    // FFXIV market board takes 5% in retainer fees on every sale.
+    private const double MarketTaxRate = 0.95;
+
     private static ScanItem MapItem(RawScanItem raw)
     {
         int.TryParse(raw.ItemId, NumberStyles.Integer, CultureInfo.InvariantCulture, out var itemId);
 
-        double.TryParse(raw.SaleRates, NumberStyles.Float, CultureInfo.InvariantCulture, out var salesPerHour);
-        var salesPerDay = salesPerHour * 24.0;
+        // sale_rates is sales/day on the home server averaged over hours_ago.
+        // Cross-checked against regionWeekly* counts on both high- and low-velocity items.
+        double.TryParse(raw.SaleRates, NumberStyles.Float, CultureInfo.InvariantCulture, out var salesPerDay);
 
         var isOutOfStock = raw.HomeServerPrice >= OutOfStockSentinel;
-        var homePrice = isOutOfStock ? 0 : raw.HomeServerPrice;
+
+        // Expected sell price: lower of current home listing and historical average.
+        // home_server_price is just the cheapest current listing — when it's far above
+        // avg_ppu, someone listed unrealistically high and you'd be undercut before
+        // selling. avg_ppu is what the item actually clears at.
+        // For OOS items, only avg_ppu is available.
+        var expectedSellPrice = isOutOfStock
+            ? raw.AvgPpu
+            : Math.Min(raw.HomeServerPrice, raw.AvgPpu);
+
+        var sellNet = (long)Math.Floor(expectedSellPrice * MarketTaxRate);
+        var profitPerUnit = sellNet - raw.Ppu;
 
         var expectedDailyProfit = 0;
-        if (!isOutOfStock && raw.ProfitAmount > 0 && salesPerDay > 0)
+        if (profitPerUnit > 0 && salesPerDay > 0)
         {
-            var product = raw.ProfitAmount * salesPerDay;
+            var product = profitPerUnit * salesPerDay;
             expectedDailyProfit = product >= int.MaxValue ? int.MaxValue : (int)product;
         }
 
@@ -197,7 +212,7 @@ public sealed class SaddlebagClient
         {
             ItemId = itemId,
             Name = raw.RealName,
-            HomePrice = homePrice,
+            HomePrice = expectedSellPrice,
             CheapestServer = raw.Server,
             CheapestPrice = raw.Ppu,
             SalesPerDay = salesPerDay,
