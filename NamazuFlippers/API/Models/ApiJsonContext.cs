@@ -1,4 +1,6 @@
 using System.Text.Json.Serialization;
+using NamazuFlippers.Core;
+using NamazuFlippers.Data;
 
 namespace NamazuFlippers.API.Models;
 
@@ -16,6 +18,12 @@ namespace NamazuFlippers.API.Models;
 [JsonSerializable(typeof(ScanResponse))]
 [JsonSerializable(typeof(ScanItem))]
 [JsonSerializable(typeof(List<ScanItem>))]
+[JsonSerializable(typeof(RankedOpportunity))]
+[JsonSerializable(typeof(RouteStop))]
+[JsonSerializable(typeof(ScanEngineResult))]
+[JsonSerializable(typeof(ScanCacheEnvelope))]
+[JsonSerializable(typeof(List<RankedOpportunity>))]
+[JsonSerializable(typeof(List<RouteStop>))]
 internal sealed partial class ApiJsonContext : JsonSerializerContext
 {
 }
