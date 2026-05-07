@@ -60,7 +60,7 @@ Plans:
 
 Plans:
 - [x] 03-01: Implement ScanEngine (API call → parse → rank → top N)
-- [ ] 03-02: Implement RouteOptimizer (group by server, minimize hops, world/DC data)
+- [x] 03-02: Implement RouteOptimizer (group by server, minimize hops, world/DC data)
 
 ### Phase 4: Core UI
 **Goal**: Player sees today's route in an ImGui window, clicks through items, and tracks profit

@@ -32,9 +32,9 @@
 ### Scan & Route
 
 - [x] **SCAN-01**: ScanEngine calls `/api/scan`, extracts ranked arbitrage opportunities, and returns top N items
-- [ ] **SCAN-02**: RouteOptimizer groups items by cheapest server and sorts stops to minimize server hops
-- [ ] **SCAN-03**: Scan results are cached locally with configurable expiry; stale cache skips API call
-- [ ] **SCAN-04**: Rescan button invalidates cache and re-queries the API
+- [x] **SCAN-02**: RouteOptimizer groups items by cheapest server and sorts stops to minimize server hops
+- [x] **SCAN-03**: Scan results are cached locally with configurable expiry; stale cache skips API call
+- [x] **SCAN-04**: Rescan button invalidates cache and re-queries the API
 
 ### Core UI
 
@@ -101,9 +101,9 @@
 | API-02 | Phase 2 | Pending |
 | API-03 | Phase 2 | Pending |
 | SCAN-01 | Phase 3 | Complete |
-| SCAN-02 | Phase 3 | Pending |
-| SCAN-03 | Phase 3 | Pending |
-| SCAN-04 | Phase 3 | Pending |
+| SCAN-02 | Phase 3 | Complete |
+| SCAN-03 | Phase 3 | Complete |
+| SCAN-04 | Phase 3 | Complete |
 | UI-01 | Phase 4 | Pending |
 | UI-02 | Phase 4 | Pending |
 | UI-03 | Phase 4 | Pending |
