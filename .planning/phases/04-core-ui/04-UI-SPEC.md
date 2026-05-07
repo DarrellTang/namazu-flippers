@@ -87,7 +87,7 @@ Override item spacing only within tightly-spaced item lists; restore immediately
 ┌─ Window titlebar: "Namazu Flippers — Daily Route" ─────────┐
 │  [Status banner — conditional, see Status States]           │
 │  ─────────────────────────────────────────────────          │
-│  Progress: Bought X/N  Listed X/N   [Rescan button]        │
+│  Progress: Bought X/N  Listed X/N   [Rescan Route button]  │
 │  ProgressBar (bought fraction, green)                        │
 │  ProgressBar (listed fraction, cyan)                         │
 │  Profit tally: X,XXX,XXX gil expected today                 │
@@ -102,6 +102,8 @@ Override item spacing only within tightly-spaced item lists; restore immediately
 └─────────────────────────────────────────────────────────────┘
 ```
 
+**Primary focal point:** the progress summary section (progress bars + profit tally) is the first fixed element the eye lands on after the status banner — it answers "how much have I done and how much will I earn?" in a single glance. The executor must render this section before the server stop list, never after.
+
 ### Layout Structure (ConfigWindow)
 
 ```
@@ -113,7 +115,7 @@ Override item spacing only within tightly-spaced item lists; restore immediately
 │  ► Filters           [checkboxes: region, categories, etc.] │
 │  ► Cache             [int input: cache hours]               │
 │  ─────────────────────────────────────────────────          │
-│  [Save]   [Reset to Defaults]                               │
+│  [Save Settings]   [Reset to Defaults]                      │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -194,7 +196,7 @@ Banner implementation: `ImGui.PushStyleColor` + `ImGui.TextWrapped` + `ImGui.Pop
 | Progress bar (bought) | `ImGui.ProgressBar(boughtFraction, new Vector2(-1, 16))` | Fraction = bought / total items; green fill |
 | Progress bar (listed) | `ImGui.ProgressBar(listedFraction, new Vector2(-1, 16))` | Fraction = listed / total items; cyan fill |
 | Profit tally | `ImGui.TextColored(GilGold, ...)` | `Running: X,XXX,XXX / X,XXX,XXX gil` (listed profit / total potential) |
-| Rescan button | `ImGui.Button("Rescan")` | Calls `RunScanAsync(forceRefresh: true)`; disabled while scan in progress |
+| Rescan button | `ImGui.Button("Rescan Route")` | Calls `RunScanAsync(forceRefresh: true)`; disabled while scan in progress |
 | Server stop header | `ImGui.CollapsingHeader(label, ref open)` | `label` = `PurchaseSource` + `DataCenter` if non-vendor; auto-collapses when all items bought |
 | Vendor stop header | `ImGui.CollapsingHeader(label, ref open)` | `label` = `Vendor: ...` in VendorCyan text; structured like world stop but with distinct color |
 | Item checkbox | `ImGui.Checkbox("##bought-{itemId}", ref bought)` | Inline with item row; triggers profit tally update |
@@ -227,7 +229,7 @@ Banner implementation: `ImGui.PushStyleColor` + `ImGui.TextWrapped` + `ImGui.Pop
 | CacheDurationHours | CONF-08 | `ImGui.SliderInt("Cache Duration (hours)", ref val, 1, 24)` | |
 | EnableShortagePredictor | Phase 6 | `ImGui.Checkbox("Enable Shortage Predictor (Phase 6)", ref val)` | Greyed-out / disabled for now; visible but inert in Phase 4 |
 
-Config save: `ImGui.Button("Save")` → `pluginInterface.SavePluginConfig(configuration)`.
+Config save: `ImGui.Button("Save Settings")` → `pluginInterface.SavePluginConfig(configuration)`.
 Config reset: `ImGui.SameLine(); ImGui.PushStyleColor(ErrorRed); ImGui.Button("Reset to Defaults"); ImGui.PopStyleColor()` → restore all default values + save.
 
 ---
@@ -247,9 +249,9 @@ Config reset: `ImGui.SameLine(); ImGui.PushStyleColor(ErrorRed); ImGui.Button("R
 - Effect: item's `listed` state flips; listed progress bar and listed profit tally update.
 - Source: UI-03, UI-04.
 
-### Rescan Button
+### Rescan Route Button
 
-- Label: `Rescan`
+- Label: `Rescan Route`
 - Placement: right-aligned in the summary section (use `ImGui.SetCursorPosX(ImGui.GetContentRegionAvail().X - buttonWidth)` before drawing).
 - Behavior: calls `RunScanAsync(forceRefresh: true)` via plugin reference. Disabled (`ImGui.BeginDisabled()`) while `scanInProgress == 1`.
 - After scan: `LatestScanResult` on the plugin is updated; window re-reads it next frame.
@@ -285,8 +287,8 @@ Config reset: `ImGui.SameLine(); ImGui.PushStyleColor(ErrorRed); ImGui.Button("R
 |---------|------|--------|
 | Window title | `Namazu Flippers — Daily Route` | default |
 | Config window title | `Namazu Flippers — Settings` | default |
-| Rescan CTA | `Rescan` | SCAN-04 |
-| Config save CTA | `Save` | default |
+| Rescan CTA | `Rescan Route` | SCAN-04 |
+| Config save CTA | `Save Settings` | default |
 | Config reset CTA | `Reset to Defaults` | default |
 | Progress label | `Bought: {N}/{Total}   Listed: {N}/{Total}` | UI-05 |
 | Profit tally label | `Profit: {listed_profit:n0} / {total_potential:n0} gil` | UI-04 |
