@@ -1,6 +1,7 @@
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
 using Dalamud.Bindings.ImGui;
+using NamazuFlippers.Data;
 using System.Numerics;
 
 namespace NamazuFlippers;
@@ -18,37 +19,6 @@ public class FirstRunWindow
     private readonly Func<bool> isVisible;
 
     private int selectedWorldIndex = -1;
-
-    /// <summary>
-    /// All 85 FFXIV worlds as of Dawntrail 7.x, sorted alphabetically for the dropdown picker.
-    /// </summary>
-    private static readonly string[] KnownWorlds =
-    [
-        "Adamantoise", "Aegis", "Alexander", "Alpha", "Anima", "Asura", "Atomos",
-        "Bahamut", "Balmung", "Behemoth", "Belias", "Bismarck", "Brynhildr",
-        "Cactuar", "Carbuncle", "Cerberus", "Chocobo", "Coeurl", "Cuchulainn",
-        "Diabolos", "Durandal",
-        "Excalibur", "Exodus",
-        "Faerie", "Famfrit", "Fenrir",
-        "Garuda", "Gilgamesh", "Goblin", "Golem", "Gungnir",
-        "Hades", "Halicarnassus", "Hyperion",
-        "Ifrit", "Ixion",
-        "Jenova",
-        "Kraken", "Kujata",
-        "Lamia", "Leviathan", "Lich", "Louisoix",
-        "Maduin", "Malboro", "Mandragora", "Marilith", "Masamune", "Mateus",
-        "Midgardsormr", "Moogle",
-        "Odin", "Omega",
-        "Pandaemonium", "Phantom", "Phoenix",
-        "Rafflesia", "Ragnarok", "Raiden", "Ramuh", "Ravana", "Ridill",
-        "Sagittarius", "Sargatanas", "Sephirot", "Seraph", "Shinryu", "Shiva",
-        "Siren", "Sophia", "Spriggan",
-        "Tiamat", "Titan", "Tonberry", "Twintania", "Typhon",
-        "Ultima", "Ultros", "Unicorn",
-        "Valefor",
-        "Yojimbo",
-        "Zalera", "Zeromus", "Zodiark", "Zurvan",
-    ];
 
     public FirstRunWindow(
         Configuration configuration,
@@ -85,16 +55,16 @@ public class FirstRunWindow
             ImGui.Text("Select your home world:");
 
             // Dropdown combo — guaranteed valid, no typo or validation needed
-            var preview = selectedWorldIndex >= 0 && selectedWorldIndex < KnownWorlds.Length
-                ? KnownWorlds[selectedWorldIndex]
+            var preview = selectedWorldIndex >= 0 && selectedWorldIndex < WorldData.KnownWorlds.Length
+                ? WorldData.KnownWorlds[selectedWorldIndex]
                 : "Choose a world...";
 
             if (ImGui.BeginCombo("##home-world-combo", preview))
             {
-                for (int i = 0; i < KnownWorlds.Length; i++)
+                for (int i = 0; i < WorldData.KnownWorlds.Length; i++)
                 {
                     var isSelected = i == selectedWorldIndex;
-                    if (ImGui.Selectable(KnownWorlds[i], isSelected))
+                    if (ImGui.Selectable(WorldData.KnownWorlds[i], isSelected))
                         selectedWorldIndex = i;
 
                     if (isSelected)
@@ -106,7 +76,7 @@ public class FirstRunWindow
             ImGui.Spacing();
 
             // Confirm button — saves the selected world
-            var canConfirm = selectedWorldIndex >= 0 && selectedWorldIndex < KnownWorlds.Length;
+            var canConfirm = selectedWorldIndex >= 0 && selectedWorldIndex < WorldData.KnownWorlds.Length;
             if (!canConfirm)
                 ImGui.BeginDisabled();
 
@@ -117,7 +87,7 @@ public class FirstRunWindow
 
             if (confirmPressed && canConfirm)
             {
-                configuration.HomeWorld = KnownWorlds[selectedWorldIndex];
+                configuration.HomeWorld = WorldData.KnownWorlds[selectedWorldIndex];
                 pluginInterface.SavePluginConfig(configuration);
 
                 log.Information($"Home world set to: {configuration.HomeWorld}");
