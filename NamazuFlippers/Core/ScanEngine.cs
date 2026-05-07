@@ -58,13 +58,13 @@ public sealed class ScanEngine
             fresh.Result.RouteStops = routeStops;
             fresh.Result.TotalExpectedDailyProfit = routeStops.Sum(stop => stop.TotalExpectedDailyProfit);
 
-            if (cacheStore != null && fresh.RawResponse != null)
-                await cacheStore.SaveAsync(fresh.RawResponse, fresh.Result, ct);
+            if (fresh.RawResponse != null)
+                await TrySaveCacheAsync(fresh.RawResponse, fresh.Result, ct);
         }
         else if (fresh.Result.Status == ScanEngineStatus.Empty)
         {
-            if (cacheStore != null && fresh.RawResponse != null)
-                await cacheStore.SaveAsync(fresh.RawResponse, fresh.Result, ct);
+            if (fresh.RawResponse != null)
+                await TrySaveCacheAsync(fresh.RawResponse, fresh.Result, ct);
         }
         else if (cacheStore != null)
         {
@@ -82,6 +82,25 @@ public sealed class ScanEngine
         }
 
         return fresh.Result;
+    }
+
+    private async Task TrySaveCacheAsync(ScanResponse rawResponse, ScanEngineResult result, CancellationToken ct)
+    {
+        if (cacheStore == null)
+            return;
+
+        try
+        {
+            await cacheStore.SaveAsync(rawResponse, result, ct);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            log.Warning("/nflip: scan succeeded but cache save failed: {Message}", ex.Message);
+        }
     }
 
     public async Task<ScanEngineResult> ScanFreshAsync(CancellationToken ct = default) =>
