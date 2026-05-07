@@ -14,11 +14,19 @@ public sealed class SaddlebagClient
     private const int MaxRetries = 3;
     private const string ScanEndpoint = "/api/scan";
 
-    private static readonly HttpClient Http = new()
+    private static readonly HttpClient Http = CreateHttpClient();
+
+    private static HttpClient CreateHttpClient()
     {
-        BaseAddress = new Uri("https://api.saddlebagexchange.com"),
-        Timeout = TimeSpan.FromSeconds(30),
-    };
+        var client = new HttpClient
+        {
+            BaseAddress = new Uri("https://api.saddlebagexchange.com"),
+            Timeout = TimeSpan.FromSeconds(30),
+        };
+        var version = typeof(SaddlebagClient).Assembly.GetName().Version?.ToString() ?? "0.0.0";
+        client.DefaultRequestHeaders.UserAgent.ParseAdd($"NamazuFlippers/{version} (+https://github.com/DarrellTang/namazu-flippers)");
+        return client;
+    }
 
     private readonly Configuration _config;
     private readonly IPluginLog _log;
