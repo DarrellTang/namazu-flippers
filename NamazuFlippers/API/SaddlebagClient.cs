@@ -63,12 +63,8 @@ public sealed class SaddlebagClient
 
                 if (response.IsSuccessStatusCode)
                 {
-                    var scanResponse = await response.Content
-                        .ReadFromJsonAsync<ScanResponse>(ApiJsonContext.Default.Options, ct);
-
-                    if (scanResponse == null)
-                        throw new ApiException("API returned null response.",
-                            (int)response.StatusCode, isRetryable: false);
+                    var body = await response.Content.ReadAsStringAsync(ct);
+                    var scanResponse = NormalizeScanResponse(body, (int)response.StatusCode);
 
                     _log.Information("/nflip: Scan completed — {Count} items found.",
                         scanResponse.Items?.Count ?? 0);
@@ -145,6 +141,52 @@ public sealed class SaddlebagClient
             clone.Headers.TryAddWithoutValidation(header.Key, header.Value);
         return clone;
     }
+
+    private static ScanResponse NormalizeScanResponse(string body, int statusCode)
+    {
+        if (string.IsNullOrWhiteSpace(body))
+            throw new ApiException("API returned an empty response.", statusCode, isRetryable: false);
+
+        try
+        {
+            using var document = JsonDocument.Parse(body);
+            var root = document.RootElement;
+
+            if (root.ValueKind == JsonValueKind.Array)
+                return new ScanResponse { Items = DeserializeItems(root) };
+
+            if (root.ValueKind == JsonValueKind.Object)
+            {
+                if (TryGetArrayProperty(root, "items", out var items) ||
+                    TryGetArrayProperty(root, "results", out items) ||
+                    TryGetArrayProperty(root, "data", out items))
+                {
+                    return new ScanResponse { Items = DeserializeItems(items) };
+                }
+
+                var response = JsonSerializer.Deserialize(
+                    root.GetRawText(),
+                    ApiJsonContext.Default.ScanResponse);
+
+                if (response != null)
+                    return response;
+            }
+        }
+        catch (JsonException ex)
+        {
+            throw new ApiException("API returned invalid JSON.", ex, statusCode, isRetryable: false);
+        }
+
+        throw new ApiException("API response shape did not contain scan items.", statusCode, isRetryable: false);
+    }
+
+    private static bool TryGetArrayProperty(JsonElement root, string propertyName, out JsonElement value) =>
+        root.TryGetProperty(propertyName, out value) && value.ValueKind == JsonValueKind.Array;
+
+    private static List<ScanItem> DeserializeItems(JsonElement element) =>
+        JsonSerializer.Deserialize(
+            element.GetRawText(),
+            ApiJsonContext.Default.ListScanItem) ?? [];
 }
 
 /// <summary>

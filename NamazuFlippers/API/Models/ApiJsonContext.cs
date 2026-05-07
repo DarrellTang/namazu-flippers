@@ -15,6 +15,7 @@ namespace NamazuFlippers.API.Models;
 [JsonSerializable(typeof(ScanRequest))]
 [JsonSerializable(typeof(ScanResponse))]
 [JsonSerializable(typeof(ScanItem))]
+[JsonSerializable(typeof(List<ScanItem>))]
 internal sealed partial class ApiJsonContext : JsonSerializerContext
 {
 }
