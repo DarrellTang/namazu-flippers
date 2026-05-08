@@ -44,9 +44,18 @@ public class ConfigWindow : Window
 
     public override void OnOpen()
     {
-        snapshot = Snapshot(plugin.Configuration);
-        isDirty = false;
-        selectedWorldIndex = Array.IndexOf(WorldData.KnownWorlds, plugin.Configuration.HomeWorld);
+        // Guard against Dalamud's WindowHost.DrawInternal spuriously firing OnOpen on the
+        // frame after OnClose cancels a dirty close (sets IsOpen = true to keep the window
+        // alive while the unsaved-changes modal renders). On a genuine new open, isDirty
+        // is always false because Save and Discard both clear it before closing, and
+        // Cancel keeps the window open without dispatching OnClose. On the spurious
+        // re-open, isDirty is true — and re-snapshotting at that moment would capture
+        // the user's edited values, corrupting the Discard restore path.
+        if (!isDirty)
+        {
+            snapshot = Snapshot(plugin.Configuration);
+            selectedWorldIndex = Array.IndexOf(WorldData.KnownWorlds, plugin.Configuration.HomeWorld);
+        }
     }
 
     public override void OnClose()
