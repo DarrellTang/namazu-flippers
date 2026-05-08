@@ -209,6 +209,15 @@ require_pattern "NamazuFlippers/UI/DailyRouteWindow.cs" \
   "listedState\[item\.ItemId\]" \
   "Listed checkbox writes listedState by ItemId (gap-closure 04-04)"
 
+echo
+echo "Gap closure regression: ConfigWindow OnOpen must guard snapshot with !isDirty"
+require_pattern "NamazuFlippers/UI/ConfigWindow.cs" \
+  "if \(!isDirty\)" \
+  "OnOpen wraps snapshot capture in !isDirty guard (gap-closure 04-06)"
+require_pattern "NamazuFlippers/UI/ConfigWindow.cs" \
+  "snapshot = Snapshot\(plugin\.Configuration\)" \
+  "Snapshot capture call survives inside the guard (gap-closure 04-06)"
+
 if [[ "$failures" -ne 0 ]]; then
   printf '\nPhase 04 Nyquist validation failed: %d check(s) failed.\n' "$failures" >&2
   exit 1
