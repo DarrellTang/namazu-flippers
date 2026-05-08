@@ -121,7 +121,11 @@ public class DailyRouteWindow : Window
         ImGui.SameLine();
         const float rescanWidth = 110f;
         const float settingsWidth = 80f;
-        const float buttonSpacing = 8f; // ImGui default item spacing
+        // Source the gap from runtime ImGui style so it tracks Dalamud's UI scale —
+        // the SameLine() between Settings and Rescan below uses this same value.
+        // (Hardcoding 8f overflowed Rescan past the right edge at FFXIV UI scale > 1.0;
+        // see 04-REVIEW.md WR-02 and .planning/debug/rescan-button-still-cut-off.md.)
+        var buttonSpacing = ImGui.GetStyle().ItemSpacing.X;
         var avail = ImGui.GetContentRegionAvail().X;
         var combinedWidth = rescanWidth + buttonSpacing + settingsWidth;
         if (avail > combinedWidth)
@@ -245,7 +249,23 @@ public class DailyRouteWindow : Window
                 ImGui.SameLine();
                 ImGui.TextColored(GilGold, $"+{item.ExpectedDailyProfit:n0}/day");
 
-                ImGui.SameLine();
+                // Anchor the Listed checkbox + price label to a fixed X column right-aligned
+                // inside the row, so the checkbox lands in the same column on every item
+                // regardless of name length / [OOS] / [Vendor] / price / profit text widths.
+                // Computing the X each frame from GetContentRegionMax keeps the column resilient
+                // if the window is later resized; window is currently locked at 420px width.
+                // Width budget for the trailing column = checkbox (~22 px) + ItemSpacing
+                // (~8 px scaled) + "List: 9,999,999" worst-case label (~120 px) ≈ 150 px.
+                const float listedColumnWidth = 150f;
+                var rowCursorPosX = ImGui.GetCursorPosX();
+                var contentMaxX = ImGui.GetWindowContentRegionMax().X;
+                var listedAnchorX = contentMaxX - listedColumnWidth;
+                // Fall back to bare SameLine() if the row is too narrow to honor the anchor —
+                // prevents the checkbox from jumping LEFT into the prior text on a too-narrow row.
+                if (listedAnchorX > rowCursorPosX)
+                    ImGui.SameLine(listedAnchorX);
+                else
+                    ImGui.SameLine();
                 var listed = listedState.GetValueOrDefault(item.ItemId);
                 if (ImGui.Checkbox($"##listed-{item.ItemId}", ref listed))
                     listedState[item.ItemId] = listed;
