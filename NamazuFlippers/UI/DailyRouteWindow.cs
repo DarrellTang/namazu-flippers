@@ -193,13 +193,11 @@ public class DailyRouteWindow : Window
 
         if (open)
         {
-            bool isHomeStop = !stop.IsVendorStop
-                && stop.PurchaseSource.Equals(plugin.Configuration.HomeWorld, StringComparison.OrdinalIgnoreCase);
-            DrawItems(stop, isHomeStop);
+            DrawItems(stop);
         }
     }
 
-    private void DrawItems(RouteStop stop, bool isHomeStop)
+    private void DrawItems(RouteStop stop)
     {
         ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(4, 4));
         try
@@ -242,15 +240,12 @@ public class DailyRouteWindow : Window
                 ImGui.SameLine();
                 ImGui.TextColored(GilGold, $"+{item.ExpectedDailyProfit:n0}/day");
 
-                if (isHomeStop)
-                {
-                    ImGui.SameLine();
-                    var listed = listedState.GetValueOrDefault(item.ItemId);
-                    if (ImGui.Checkbox($"##listed-{item.ItemId}", ref listed))
-                        listedState[item.ItemId] = listed;
-                    ImGui.SameLine();
-                    ImGui.TextColored(GilGold, $"List: {item.HomePrice:n0}");
-                }
+                ImGui.SameLine();
+                var listed = listedState.GetValueOrDefault(item.ItemId);
+                if (ImGui.Checkbox($"##listed-{item.ItemId}", ref listed))
+                    listedState[item.ItemId] = listed;
+                ImGui.SameLine();
+                ImGui.TextColored(GilGold, $"List: {item.HomePrice:n0}");
             }
         }
         finally
