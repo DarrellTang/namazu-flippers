@@ -38,7 +38,7 @@
 
 ### Core UI
 
-- [ ] **UI-01**: DailyRouteWindow displays today's route: server stops in order, items to buy per stop with prices
+- [x] **UI-01**: DailyRouteWindow displays today's route: server stops in order, items to buy per stop with prices
 - [x] **UI-02**: Each item has a checkbox to mark "bought" at the purchase server
 - [x] **UI-03**: Home stop section shows items to list with "listed" checkboxes
 - [x] **UI-04**: Running profit tally updates as items are marked listed
@@ -104,7 +104,7 @@
 | SCAN-02 | Phase 3 | Complete |
 | SCAN-03 | Phase 3 | Complete |
 | SCAN-04 | Phase 3 | Complete |
-| UI-01 | Phase 4 | Pending |
+| UI-01 | Phase 4 | Complete |
 | UI-02 | Phase 4 | Complete |
 | UI-03 | Phase 4 | Complete |
 | UI-04 | Phase 4 | Complete |

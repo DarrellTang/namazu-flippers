@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: ready_to_plan
-stopped_at: Phase 4 context gathered
-last_updated: "2026-05-08T01:32:44.050Z"
-last_activity: 2026-05-08 -- Phase 04 execution started
+stopped_at: Completed 04-07-PLAN.md (Phase 4 gap-closure for GAP-D1 + GAP-D2)
+last_updated: "2026-05-08T05:24:01Z"
+last_activity: 2026-05-08 -- Phase 04 plan 04-07 complete (Rescan clip + Listed alignment)
 progress:
   total_phases: 7
   completed_phases: 4
-  total_plans: 12
-  completed_plans: 9
-  percent: 57
+  total_plans: 13
+  completed_plans: 13
+  percent: 100
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-05-07)
 
 ## Current Position
 
-Phase: 5
-Plan: Not started
-Next: 04 — Core UI
-Status: Ready to plan
-Last activity: 2026-05-08
+Phase: 04 (core-ui) — COMPLETE (8/8 plans, all gap-closures landed)
+Plan: 04-07 complete (Rescan clip + Listed alignment, GAP-D1 + GAP-D2)
+Next: 05 — Session Persistence (ready to plan)
+Status: Ready to plan Phase 05
+Last activity: 2026-05-08 -- Phase 04 plan 04-07 complete
 
 Progress: [██████████] 100%
 
@@ -65,6 +65,7 @@ Progress: [██████████] 100%
 | Phase 03 P02 | 9 min | 5 tasks | 10 files |
 | Phase 04-core-ui P04-02 | 12 | 2 tasks | 1 files |
 | Phase 04 P04-03 | 4min | 2 tasks | 1 files |
+| Phase 04 P04-07 | 2 min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -80,6 +81,8 @@ Progress: [██████████] 100%
 - 04-01: DailyRouteWindow declares private color constants with literal Vector4 values for nyquist.sh assertions; UiColors.cs is the public canonical source
 - [Phase ?]: D-12: showUnsavedModal trigger at top of Draw() ensures same-frame OpenPopup
 - [Phase ?]: D-13: HomeWorld preserved on Reset to defaults
+- 04-07: buttonSpacing in DrawProgressSection sourced from ImGui.GetStyle().ItemSpacing.X at runtime — never a compile-time constant — so reservation tracks the SameLine() actual gap at every Dalamud UI scale
+- 04-07: Listed checkbox column anchored via ImGui.SameLine(GetWindowContentRegionMax().X - 150f) with a bare-SameLine fallback when the row is too narrow — fixed-X column independent of preceding widget widths
 
 ### Pending Todos
 
@@ -91,6 +94,6 @@ No implementation blockers. Local macOS compiler verification is intentionally r
 
 ## Session Continuity
 
-Last session: 2026-05-07T07:09:54.315Z
-Stopped at: Phase 4 context gathered
+Last session: 2026-05-08T05:24:01Z
+Stopped at: Completed 04-07-PLAN.md (Phase 4 gap-closure for GAP-D1 + GAP-D2)
 Resume file: None
