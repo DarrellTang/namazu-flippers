@@ -1,8 +1,8 @@
 ---
-status: diagnosed
+status: resolved
 trigger: "Rescan Route button is cut off on the right side of DailyRouteWindow at default size"
 created: 2026-05-07T00:00:00Z
-updated: 2026-05-07T00:00:00Z
+updated: 2026-05-08T01:00:00Z
 ---
 
 ## Current Focus

@@ -1,8 +1,8 @@
 ---
-status: diagnosed
+status: resolved
 trigger: "Discard does not revert the change. Save does save the change correctly. Cancel closes the modal but keeps the ConfigWindow open."
 created: 2026-05-07T09:30:00Z
-updated: 2026-05-07T09:45:00Z
+updated: 2026-05-08T01:00:00Z
 symptoms_prefilled: true
 goal: find_root_cause_only
 ---

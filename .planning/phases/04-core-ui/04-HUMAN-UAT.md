@@ -1,9 +1,10 @@
 ---
-status: diagnosed
+status: resolved
 phase: 04-core-ui
 source: [04-VERIFICATION.md]
 started: 2026-05-07T08:50:00Z
-updated: 2026-05-07T10:00:00Z
+updated: 2026-05-08T01:00:00Z
+resolved_by: [04-04-PLAN.md, 04-05-PLAN.md, 04-06-PLAN.md]
 ---
 
 ## Current Test
@@ -48,7 +49,7 @@ blocked: 0
 ## Gaps
 
 - truth: "The profit tally displays the sum of ExpectedDailyProfit for listed items in GilGold and updates each frame as listed checkboxes are toggled"
-  status: failed
+  status: resolved
   reason: "User reported: The profit still shows zero even though I've checked some of the boxes. Everything else seems to be working properly, except that the calculation seems to be wrong. Some of the items I purchased were at the buy price, which is correct, but the listing price is much higher than what the profit suggests here."
   severity: major
   test: 1
@@ -68,7 +69,7 @@ blocked: 0
   debug_session: .planning/debug/profit-tally-shows-zero.md
 
 - truth: "DailyRouteWindow has a Settings button that opens ConfigWindow (D-07 second entry point alongside /xlsettings gear icon)"
-  status: failed
+  status: resolved
   reason: "User reported: I see no settings button in the route window."
   severity: major
   test: 3
@@ -82,7 +83,7 @@ blocked: 0
   shares_fix_with: ["Rescan Route button cut off"]
 
 - truth: "Rescan Route button renders fully within the DailyRouteWindow's visible area at default window width (720px)"
-  status: failed
+  status: resolved
   reason: "User reported: The re-scan route button is also cut off on the right."
   severity: minor
   test: 3
@@ -99,7 +100,7 @@ blocked: 0
   shares_fix_with: ["Settings button missing"]
 
 - truth: "Discard button in unsaved-changes modal restores the snapshot to plugin.Configuration, clears isDirty, and closes the window (D-12)"
-  status: failed
+  status: resolved
   reason: "User reported: Discard does not revert the change. (Save and Cancel work correctly.)"
   severity: major
   test: 3
@@ -114,7 +115,7 @@ blocked: 0
   debug_session: .planning/debug/discard-not-reverting.md
 
 - truth: "DailyRouteWindow has a Settings button that opens ConfigWindow (D-07 second entry point alongside /xlsettings gear icon)"
-  status: failed
+  status: resolved
   reason: "User reported: I see no settings button in the route window."
   severity: major
   test: 3
@@ -123,7 +124,7 @@ blocked: 0
   hint: "04-02 plan T1 specified DrawProgressSection adds 'Rescan Route' AND 'Settings' buttons in the top section. Verify the Settings button is being rendered (may be conditionally hidden, off-screen due to layout, or only the Rescan button was implemented)."
 
 - truth: "Rescan Route button renders fully within the DailyRouteWindow's visible area at default window width (720px)"
-  status: failed
+  status: resolved
   reason: "User reported: The re-scan route button is also cut off on the right."
   severity: minor
   test: 3
@@ -132,7 +133,7 @@ blocked: 0
   hint: "Likely cause: button row uses fixed widths or absolute positioning that overflows at 720px. Fix could be (a) shorter labels (Rescan / Settings instead of Rescan Route), (b) ImGui.SameLine layout audit, or (c) ImGui.GetContentRegionAvail-based sizing."
 
 - truth: "Discard button in unsaved-changes modal restores the snapshot to plugin.Configuration, clears isDirty, and closes the window (D-12)"
-  status: failed
+  status: resolved
   reason: "User reported: Discard does not revert the change. (Save and Cancel work correctly.)"
   severity: major
   test: 3

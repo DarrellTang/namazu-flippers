@@ -1,8 +1,8 @@
 ---
-status: diagnosed
+status: resolved
 trigger: "profit tally shows zero even though listed checkboxes are checked"
 created: 2026-05-07T00:00:00Z
-updated: 2026-05-07T00:00:00Z
+updated: 2026-05-08T01:00:00Z
 symptoms_prefilled: true
 goal: find_root_cause_only
 ---
