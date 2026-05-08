@@ -83,8 +83,8 @@ Plans:
 - [x] 04-02-PLAN.md — Wire buy/list checkboxes, profit tally, progress, OOS, auto-collapse (UI-02..UI-07)
 - [x] 04-03-PLAN.md — Build ConfigWindow with snapshot/dirty/discard and all CONF-01..09 controls (UI-08)
 - [x] 04-04-PLAN.md — [gap-closure] Render listed-checkbox inline on every row; remove unreachable isHomeStop gate (UI-03, UI-04)
-- [ ] 04-05-PLAN.md — [gap-closure] Fix DrawProgressSection layout so Settings + Rescan both fit at 420px window (UI-01, UI-08)
-- [ ] 04-06-PLAN.md — [gap-closure] Guard ConfigWindow.OnOpen snapshot with !isDirty so Discard reverts correctly (UI-08)
+- [x] 04-05-PLAN.md — [gap-closure] Fix DrawProgressSection layout so Settings + Rescan both fit at 420px window (UI-01, UI-08)
+- [x] 04-06-PLAN.md — [gap-closure] Guard ConfigWindow.OnOpen snapshot with !isDirty so Discard reverts correctly (UI-08)
 
 ### Phase 5: Session Persistence
 **Goal**: Session state survives game restarts; scan cache avoids redundant API calls
