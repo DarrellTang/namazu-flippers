@@ -218,6 +218,65 @@ require_pattern "NamazuFlippers/UI/ConfigWindow.cs" \
   "snapshot = Snapshot\(plugin\.Configuration\)" \
   "Snapshot capture call survives inside the guard (gap-closure 04-06)"
 
+echo
+echo "Gap closure regression (04-07): runtime ItemSpacing.X for Settings+Rescan group (GAP-D1)"
+# GAP-D1: buttonSpacing in DrawProgressSection MUST be sourced from
+# ImGui.GetStyle().ItemSpacing.X at runtime, not a compile-time constant.
+# Hardcoding 8f overflowed Rescan past the right edge at FFXIV UI scale > 1.0
+# (see 04-REVIEW.md WR-02, .planning/debug/rescan-button-still-cut-off.md).
+require_pattern "NamazuFlippers/UI/DailyRouteWindow.cs" \
+  "var[[:space:]]+buttonSpacing[[:space:]]*=[[:space:]]*ImGui\.GetStyle\(\)\.ItemSpacing\.X" \
+  "DrawProgressSection reads buttonSpacing from runtime ImGui.GetStyle().ItemSpacing.X (GAP-D1, 04-07)"
+require_absent_pattern "NamazuFlippers/UI/DailyRouteWindow.cs" \
+  "const[[:space:]]+float[[:space:]]+buttonSpacing[[:space:]]*=[[:space:]]*8f" \
+  "Hardcoded const float buttonSpacing = 8f is gone (GAP-D1, 04-07)"
+# Defense in depth: combinedWidth must reference the runtime value, not a literal 8f.
+require_pattern "NamazuFlippers/UI/DailyRouteWindow.cs" \
+  "combinedWidth[[:space:]]*=[[:space:]]*rescanWidth[[:space:]]*\+[[:space:]]*buttonSpacing[[:space:]]*\+[[:space:]]*settingsWidth" \
+  "combinedWidth still composed from rescanWidth + buttonSpacing + settingsWidth (GAP-D1, 04-07)"
+
+echo
+echo "Gap closure regression (04-07): listed checkbox column anchor (GAP-D2)"
+# GAP-D2: the ##listed-{itemId} Checkbox MUST be preceded by an absolute-X anchor
+# (SameLine with a non-empty argument OR SetCursorPosX) so the checkbox lands in
+# a consistent column across rows. A bare ImGui.SameLine() chained after
+# variable-width elements caused per-row drift (see
+# .planning/debug/listed-checkbox-not-aligned.md).
+#
+# Strategy: scan DailyRouteWindow.cs and assert that within a small window of
+# source lines BEFORE the ##listed- Checkbox call, at least one anchor pattern
+# appears. We use awk to confine the search to the lines preceding the
+# ##listed- match — pattern-existence-anywhere would not enforce the structural
+# relationship.
+listed_anchor_check() {
+  local file="NamazuFlippers/UI/DailyRouteWindow.cs"
+  local label="absolute-X anchor (SameLine(arg) or SetCursorPosX) precedes ##listed- Checkbox in DrawItems (GAP-D2, 04-07)"
+  if [[ ! -f "$file" ]]; then
+    fail "$label (file missing)"
+    return
+  fi
+  # Find the line number of the first ##listed- occurrence.
+  local listed_line
+  listed_line="$(grep -nE '##listed-' "$file" | head -1 | cut -d: -f1 || true)"
+  if [[ -z "$listed_line" ]]; then
+    fail "$label (no ##listed- match found)"
+    return
+  fi
+  # Look back up to 30 source lines for an anchor pattern.
+  local window_start=$(( listed_line - 30 ))
+  if [[ "$window_start" -lt 1 ]]; then window_start=1; fi
+  local anchor
+  anchor="$(awk -v a="$window_start" -v b="$listed_line" \
+              'NR>=a && NR<b && (/SameLine\([^)[:space:]]/ || /SetCursorPosX/) {print NR; exit}' \
+              "$file")"
+  if [[ -n "$anchor" ]]; then
+    pass "$label"
+  else
+    fail "$label"
+  fi
+}
+listed_anchor_check
+
 if [[ "$failures" -ne 0 ]]; then
   printf '\nPhase 04 Nyquist validation failed: %d check(s) failed.\n' "$failures" >&2
   exit 1
