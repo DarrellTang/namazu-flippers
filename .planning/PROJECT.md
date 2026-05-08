@@ -13,9 +13,9 @@ A single button gives you today's best arbitrage route. Follow it, buy, list, do
 ### Validated
 
 - PLUG-01, PLUG-02, PLUG-03: Plugin shell requirements validated in Phase 1
-- CONF-01 through CONF-09: Full ConfigWindow UI for all 14 settings + home world prompt validated in Phase 4 (in-game UAT pending)
+- CONF-01 through CONF-09: Full ConfigWindow UI for all 14 settings + home world prompt validated in Phase 4 (Discard flow fixed in 04-06 via `!isDirty` snapshot guard)
 - SCAN-01, SCAN-02, SCAN-03, SCAN-04: Scan engine, route optimizer, cache, and manual refresh wiring validated in Phase 3
-- UI-01 through UI-08: Core UI (DailyRouteWindow, ConfigWindow, WindowSystem, profit tally, progress bars, OOS visuals, auto-collapse) validated in Phase 4 — automated checks 8/8, in-game UAT deferred to `04-HUMAN-UAT.md`
+- UI-01 through UI-08: Core UI validated in Phase 4 — 8/8 must-haves verified after gap-closure (04-04 listed-checkbox + profit tally, 04-05 Settings/Rescan layout at 420px, 04-06 ConfigWindow Discard); 4 debug sessions resolved; UAT closed
 
 ### Active
 
@@ -81,4 +81,4 @@ Login → open plugin → see today's route → travel to server → buy items �
 | CI is the authoritative build gate | Developer workspace is macOS; local compile lacks Dalamud SDK assemblies, while CI downloads Dalamud and packages releases | Phase 3 |
 
 ---
-*Last updated: 2026-05-07 after Phase 4 (Core UI) execution — DailyRouteWindow + ConfigWindow shipped; in-game UAT pending.*
+*Last updated: 2026-05-08 after Phase 4 gap-closure (04-04, 04-05, 04-06) — UAT gaps resolved, phase complete with 8/8 must-haves verified.*
