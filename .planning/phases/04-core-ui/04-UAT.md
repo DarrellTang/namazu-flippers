@@ -1,10 +1,10 @@
 ---
-status: complete
+status: diagnosed
 phase: 04-core-ui
 source: [04-04-SUMMARY.md, 04-05-SUMMARY.md, 04-06-SUMMARY.md]
 scope: gap-closure-behavioral-verification
 started: 2026-05-08T03:12:12Z
-updated: 2026-05-08T03:35:00Z
+updated: 2026-05-08T03:45:00Z
 build_tested: 1.0.26.0
 ---
 
@@ -65,24 +65,33 @@ blocked: 0
 ## Gaps
 
 - truth: "Listed checkboxes are visually aligned in a consistent column across item rows in DailyRouteWindow"
-  status: failed
+  status: diagnosed
   reason: "User reported on build 1.0.26.0: 'there's 2 checkboxes now but the 2nd one is at the end of the line which is very ugly to look at. because the lines are varying lengths, the checkboxes aren't lined up.' Note: behavioral gap (GAP-A1, profit tally update) is CLOSED — user confirmed checkbox toggle increases status bar and updates profit number."
   severity: cosmetic
   test: 1
-  context: "Introduced by 04-04 listed-checkbox column. The fix renders ##listed-{itemId} unconditionally in DrawItems but does not column-align it; with item names of varying width and ImGui's flow layout, the Listed checkbox lands at the end of each row at varying X coordinates."
-  artifacts: []
+  root_cause: "DrawItems (DailyRouteWindow.cs:205-259) draws the Listed checkbox after a bare ImGui.SameLine() with no offset, following 5 variable-width elements: item.Name (item-dependent), [OOS] badge (conditional), [Vendor] badge (conditional), 'Buy: {price}' (digit count varies), '+{profit}/day' (digit count varies). With nothing anchoring the checkbox to a fixed X column, each row's accumulated width differs, so the checkbox lands at a different X on every row. The behavioral wiring from 04-04 (checkbox + listedState dict update + profit tally LINQ) is correct and must not be touched — only the X positioning is wrong."
+  artifacts:
+    - path: "NamazuFlippers/UI/DailyRouteWindow.cs"
+      issue: "Lines 243-251: bare `ImGui.SameLine()` before the Listed checkbox lacks an absolute column anchor. Variable-width preceding elements cause the checkbox X to drift per row."
   missing:
-    - "Use ImGui table columns or fixed-width text padding (Selectable with FixedHeight, or BeginTable/EndTable, or pre-padded item-name field) so the Listed checkbox occupies a consistent X column across all rows"
+    - "Replace bare `ImGui.SameLine()` before the Listed checkbox with an absolute-position call: either `ImGui.SameLine(fixedOffset)` or `ImGui.SetCursorPosX(contentMax.X - listedColumnWidth)` so the checkbox lands in a consistent column across rows."
+    - "Either hardcode an offset that fits the 420px content region (~330-360px from window left), OR compute it via `ImGui.GetWindowContentRegionMax().X - checkboxWidth - 'List:'-text-width` each frame so it stays right-aligned if the window is later resizable."
+    - "Add a nyquist regression assertion: a `ImGui.SameLine\(\d` or `SetCursorPosX` pattern must precede the `##listed-` Checkbox call, so a future refactor can't reintroduce drift."
+  debug_session: .planning/debug/listed-checkbox-not-aligned.md
 
 - truth: "Rescan Route button renders fully within DailyRouteWindow at default 420px window width"
-  status: failed
+  status: diagnosed
   reason: "User reported on build 1.0.26.0: 'Rescan route is still cut off. Settings is there though.' This is the same gap originally reported as GAP-B2; 04-05's combined-width arithmetic (110 + 8 + 80 = 198px right-alignment) closed the Settings visibility (GAP-B1) but did NOT close the Rescan clipping (GAP-B2)."
   severity: major
   test: 2
-  context: "04-05 computed combinedWidth assuming the Rescan button occupies 110px and the Settings button occupies 80px. Likely failure mode: ImGui FramePadding (default ~4px each side) makes the actual rendered width of `Button(\"Rescan Route\", new Vector2(110, 0))` exceed 110px when text doesn't fit, OR the 420px window's content region (after WindowPadding ~16px each side + ScrollbarSize) is < 198px so Rescan still overflows. Settings now renders within bounds because it's drawn FIRST (leftmost in the right-aligned group) — Rescan, drawn after SameLine, still falls off the right edge."
+  root_cause: "DrawProgressSection hardcodes `const float buttonSpacing = 8f` in the combinedWidth formula, but ImGui.SameLine() between Settings and Rescan uses runtime ImGui.GetStyle().ItemSpacing.X — which Dalamud SCALES BY THE FFXIV GLOBAL UI SCALE FACTOR. At any UI scale > 1.0, the actual gap is 8 * scale > 8, so SetCursorPosX reserves too little space and Rescan ends at content_right + (actual_ItemSpacing - 8) — past the clipping boundary by that delta. The arithmetic was correct at scale 1.0 (which is why the Settings-only fix appeared to close GAP-B1 in source-pattern testing) but fails at the user's actual UI scale. Code review WR-02 identified this exact mechanism in 04-REVIEW.md before user UAT; 04-VERIFICATION.md incorrectly dismissed it as cosmetic-only. The user's UAT result confirms WR-02."
   artifacts:
     - path: "NamazuFlippers/UI/DailyRouteWindow.cs"
-      issue: "DrawProgressSection right-alignment math: combinedWidth = rescanWidth + spacing + settingsWidth assumes button widths are exactly Vector2(110,0) and Vector2(80,0), but ImGui adds FramePadding to the actual draw width. Also: at 420px window width, content region after WindowPadding may be < 198px."
+      issue: "Lines 124-128: `const float buttonSpacing = 8f` is a compile-time constant that diverges from the runtime `ImGui.GetStyle().ItemSpacing.X` used by `SameLine()` between Settings and Rescan. Mismatch grows with FFXIV UI scale."
+    - path: ".planning/phases/04-core-ui/04-REVIEW.md"
+      issue: "WR-02 named this exact bug pre-UAT; the verifier dismissed it incorrectly. Code-review-to-verifier handoff has a gap when the verifier downgrades a code-review WR finding without explicit user-facing testing at non-1.0 scales."
   missing:
-    - "Either (a) shorten the Rescan label to just `Rescan` so it fits in 110px including padding, or (b) compute button widths from CalcTextSize + FramePadding rather than hardcoding 110/80, or (c) drop the right-alignment and use ImGui.GetContentRegionAvail() to size both buttons evenly (avail/2 each minus spacing)."
-    - "Verify against a real ImGui style snapshot: log GetWindowContentRegionWidth() vs combinedWidth at runtime to confirm whether the math overflows the available region."
+    - "Replace `const float buttonSpacing = 8f` with `var buttonSpacing = ImGui.GetStyle().ItemSpacing.X;` so the reserved gap tracks the actual gap that SameLine() will insert at the user's runtime UI scale. One-line fix per 04-REVIEW.md WR-02."
+    - "Add a nyquist regression assertion: phase04_nyquist.sh must require `ImGui\\.GetStyle\\(\\)\\.ItemSpacing\\.X` near the combinedWidth/SetCursorPosX block so a future refactor cannot silently re-hardcode the value."
+    - "Promote 04-REVIEW.md WR-02 from 'advisory' to a verifier blocker pattern: when a code review finding identifies a runtime-style mismatch, do not dismiss without explicit non-1.0-UI-scale verification."
+  debug_session: .planning/debug/rescan-button-still-cut-off.md
