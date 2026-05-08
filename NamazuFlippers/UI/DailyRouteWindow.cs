@@ -119,22 +119,27 @@ public class DailyRouteWindow : Window
         ImGui.Text($"Bought: {boughtCount}/{totalItems}   Listed: {listedCount}/{totalItems}");
 
         ImGui.SameLine();
-        const float buttonWidth = 110f;
+        const float rescanWidth = 110f;
+        const float settingsWidth = 80f;
+        const float buttonSpacing = 8f; // ImGui default item spacing
         var avail = ImGui.GetContentRegionAvail().X;
-        if (avail > buttonWidth)
-            ImGui.SetCursorPosX(ImGui.GetCursorPosX() + avail - buttonWidth);
+        var combinedWidth = rescanWidth + buttonSpacing + settingsWidth;
+        if (avail > combinedWidth)
+            ImGui.SetCursorPosX(ImGui.GetCursorPosX() + avail - combinedWidth);
 
+        // Settings button (D-07) — second entry point alongside UiBuilder.OpenConfigUi.
+        // Rendered FIRST (leftmost of the right-aligned pair) so Rescan ends up at the
+        // window's right edge and Settings sits inside the content region beside it.
+        if (ImGui.Button("Settings", new Vector2(settingsWidth, 0)))
+            plugin.OpenConfigWindow();
+
+        ImGui.SameLine();
         if (plugin.ScanInProgress)
             ImGui.BeginDisabled();
-        if (ImGui.Button("Rescan Route", new Vector2(buttonWidth, 0)))
+        if (ImGui.Button("Rescan Route", new Vector2(rescanWidth, 0)))
             _ = plugin.RescanAsync(CancellationToken.None);
         if (plugin.ScanInProgress)
             ImGui.EndDisabled();
-
-        // Settings button (D-07) — second entry point alongside UiBuilder.OpenConfigUi.
-        ImGui.SameLine();
-        if (ImGui.Button("Settings", new Vector2(80, 0)))
-            plugin.OpenConfigWindow();
 
         var boughtFraction = totalItems > 0 ? (float)boughtCount / totalItems : 0f;
         var listedFraction = totalItems > 0 ? (float)listedCount / totalItems : 0f;
