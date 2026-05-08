@@ -194,6 +194,21 @@ echo
 echo "Lambda handler safety (RESEARCH.md Pitfall 1)"
 require_pattern "NamazuFlippers/NamazuFlippers.cs" "OnOpenConfigUi" "OpenConfigUi handler stored as named method (not anonymous lambda)"
 
+echo
+echo "Gap closure regression: isHomeStop string-compare must not return"
+require_absent_pattern "NamazuFlippers/UI/DailyRouteWindow.cs" \
+  "isHomeStop\s*=" \
+  "isHomeStop string-compare assignment is gone (gap-closure 04-04)"
+require_absent_pattern "NamazuFlippers/UI/DailyRouteWindow.cs" \
+  "Configuration\.HomeWorld" \
+  "DailyRouteWindow no longer references plugin.Configuration.HomeWorld for stop classification (gap-closure 04-04)"
+require_pattern "NamazuFlippers/UI/DailyRouteWindow.cs" \
+  "##listed-" \
+  "Listed checkbox renders on every item row (gap-closure 04-04)"
+require_pattern "NamazuFlippers/UI/DailyRouteWindow.cs" \
+  "listedState\[item\.ItemId\]" \
+  "Listed checkbox writes listedState by ItemId (gap-closure 04-04)"
+
 if [[ "$failures" -ne 0 ]]; then
   printf '\nPhase 04 Nyquist validation failed: %d check(s) failed.\n' "$failures" >&2
   exit 1
