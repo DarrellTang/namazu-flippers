@@ -277,6 +277,60 @@ listed_anchor_check() {
 }
 listed_anchor_check
 
+echo
+echo "Gap closure regression (04-08): Rescan/Settings own-row + GlobalScale-scaled widths (GAP-E1)"
+# GAP-E1: 04-07's runtime ItemSpacing.X fix was real but addressed the wrong
+# mechanism. The user-visible bug was that (a) the buttons were chained on
+# the same row as the bought/listed Text via SameLine(), so `avail` measured
+# only the leftover row width — not the full content region — and (b) the
+# button widths were literal pixels that did not scale with FFXIV UI scale,
+# so "Rescan Route" could not fit inside a 110px frame at scaled font.
+# See .planning/debug/rescan-button-still-cut-off-2.md for pixel arithmetic.
+#
+# Assertion 1 (structural): the line IMMEDIATELY following the bought/listed
+# ImGui.Text(...) line in DailyRouteWindow.cs MUST NOT be ImGui.SameLine();
+# Blank lines are skipped — we look for the first non-blank source line.
+progress_buttons_own_row_check() {
+  local file="NamazuFlippers/UI/DailyRouteWindow.cs"
+  local label="Settings/Rescan buttons render on their own row — no SameLine() immediately after bought/listed Text (GAP-E1, 04-08)"
+  if [[ ! -f "$file" ]]; then
+    fail "$label (file missing)"
+    return
+  fi
+  local text_line
+  text_line="$(grep -nE 'ImGui\.Text\(\$"Bought:' "$file" | head -1 | cut -d: -f1 || true)"
+  if [[ -z "$text_line" ]]; then
+    fail "$label (bought/listed Text line not found)"
+    return
+  fi
+  # Walk forward from text_line+1 to the first non-blank line.
+  local next_nonblank
+  next_nonblank="$(awk -v start="$((text_line + 1))" \
+                     'NR>=start && $0 !~ /^[[:space:]]*$/ {print NR":"$0; exit}' \
+                     "$file")"
+  if [[ -z "$next_nonblank" ]]; then
+    fail "$label (no following non-blank line)"
+    return
+  fi
+  local next_content="${next_nonblank#*:}"
+  # Strip leading whitespace for the comparison.
+  local trimmed="${next_content#"${next_content%%[![:space:]]*}"}"
+  if [[ "$trimmed" == "ImGui.SameLine();"* ]]; then
+    fail "$label"
+  else
+    pass "$label"
+  fi
+}
+progress_buttons_own_row_check
+
+# Assertion 2: both button widths are scaled by ImGuiHelpers.GlobalScale.
+require_pattern "NamazuFlippers/UI/DailyRouteWindow.cs" \
+  "rescanWidth[[:space:]]*=[[:space:]]*110f[[:space:]]*\*[[:space:]]*ImGuiHelpers\.GlobalScale" \
+  "rescanWidth multiplied by ImGuiHelpers.GlobalScale (GAP-E1, 04-08)"
+require_pattern "NamazuFlippers/UI/DailyRouteWindow.cs" \
+  "settingsWidth[[:space:]]*=[[:space:]]*80f[[:space:]]*\*[[:space:]]*ImGuiHelpers\.GlobalScale" \
+  "settingsWidth multiplied by ImGuiHelpers.GlobalScale (GAP-E1, 04-08)"
+
 if [[ "$failures" -ne 0 ]]; then
   printf '\nPhase 04 Nyquist validation failed: %d check(s) failed.\n' "$failures" >&2
   exit 1
