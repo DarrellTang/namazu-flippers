@@ -75,7 +75,7 @@ Plans:
   6. OOS items are visually distinct (color/icon)
   7. Completed server stops auto-collapse
   8. ConfigWindow exposes all settings from CONF-01 through CONF-09
-**Plans**: 8 plans (4 gap-closure plans added across two UAT rounds 2026-05-07/2026-05-08)
+**Plans**: 9 plans (5 gap-closure plans added across three UAT rounds 2026-05-07/2026-05-08; UI-01 GAP-E1 closure pending UAT round 3 on next post-merge CI build)
 
 Plans:
 - [x] 04-00-PLAN.md — Create tests/phase04_nyquist.sh source-validation script (Wave 0)
@@ -86,6 +86,7 @@ Plans:
 - [x] 04-05-PLAN.md — [gap-closure] Fix DrawProgressSection layout so Settings + Rescan both fit at 420px window (UI-01, UI-08)
 - [x] 04-06-PLAN.md — [gap-closure] Guard ConfigWindow.OnOpen snapshot with !isDirty so Discard reverts correctly (UI-08)
 - [x] 04-07-PLAN.md — [gap-closure] Scale-aware buttonSpacing + listed-checkbox column anchor (UI-01, UI-03, UI-04, UI-08)
+- [x] 04-08-PLAN.md — [gap-closure] Rescan/Settings own-row + GlobalScale-scaled widths (UI-01, UI-08; closes GAP-E1, supersedes GAP-D1's user-visible mechanism)
 
 ### Phase 5: Session Persistence
 **Goal**: Session state survives game restarts; scan cache avoids redundant API calls
@@ -141,7 +142,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | 1. Plugin Shell &amp; Configuration | 2/2 | ✓ Complete | 2026-05-06 |
 | 2. API Integration | 2/2 | ✓ Complete | 2026-05-06 |
 | 3. Scan Engine & Route Optimizer | 2/2 | ✓ Complete | 2026-05-07 |
-| 4. Core UI | 8/8 | ✓ Complete | 2026-05-08 |
+| 4. Core UI | 9/9 | ✓ Complete | 2026-05-08 |
 | 5. Session Persistence | 0/1 | Not started | - |
 | 6. Optional Features | 0/1 | Not started | - |
 | 7. Polish & Ship | 0/2 | Not started | - |

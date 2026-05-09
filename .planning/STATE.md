@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: ready_to_plan
-stopped_at: Completed 04-07-PLAN.md (Phase 4 gap-closure for GAP-D1 + GAP-D2)
-last_updated: "2026-05-08T05:24:01Z"
-last_activity: 2026-05-08 -- Phase 04 plan 04-07 complete (Rescan clip + Listed alignment)
+stopped_at: Completed 04-08-PLAN.md (Phase 4 gap-closure for GAP-E1, supersedes GAP-D1)
+last_updated: "2026-05-08T05:34:00Z"
+last_activity: 2026-05-08 -- Phase 04 plan 04-08 complete (Rescan own-row + GlobalScale, GAP-E1)
 progress:
   total_phases: 7
   completed_phases: 4
-  total_plans: 13
-  completed_plans: 13
+  total_plans: 14
+  completed_plans: 14
   percent: 100
 ---
 
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-05-07)
 
 ## Current Position
 
-Phase: 04 (core-ui) — COMPLETE (8/8 plans, all gap-closures landed)
-Plan: 04-07 complete (Rescan clip + Listed alignment, GAP-D1 + GAP-D2)
+Phase: 04 (core-ui) — COMPLETE (9/9 plans, all gap-closures landed; UAT round 3 pending on post-merge CI build)
+Plan: 04-08 complete (Rescan own-row + GlobalScale-scaled widths, GAP-E1 — supersedes GAP-D1's user-visible mechanism)
 Next: 05 — Session Persistence (ready to plan)
-Status: Ready to plan Phase 05
-Last activity: 2026-05-08 -- Phase 04 plan 04-07 complete
+Status: Ready to plan Phase 05; UI-01 footnoted as "GAP-E1 closure pending UAT round 3 on next CI build" in REQUIREMENTS.md
+Last activity: 2026-05-08 -- Phase 04 plan 04-08 complete
 
 Progress: [██████████] 100%
 
@@ -66,6 +66,7 @@ Progress: [██████████] 100%
 | Phase 04-core-ui P04-02 | 12 | 2 tasks | 1 files |
 | Phase 04 P04-03 | 4min | 2 tasks | 1 files |
 | Phase 04 P04-07 | 2 min | 2 tasks | 2 files |
+| Phase 04 P04-08 | 4 min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -83,6 +84,9 @@ Progress: [██████████] 100%
 - [Phase ?]: D-13: HomeWorld preserved on Reset to defaults
 - 04-07: buttonSpacing in DrawProgressSection sourced from ImGui.GetStyle().ItemSpacing.X at runtime — never a compile-time constant — so reservation tracks the SameLine() actual gap at every Dalamud UI scale
 - 04-07: Listed checkbox column anchored via ImGui.SameLine(GetWindowContentRegionMax().X - 150f) with a bare-SameLine fallback when the row is too narrow — fixed-X column independent of preceding widget widths
+- 04-08: Settings + Rescan render on their OWN row (no SameLine after the bought/listed Text) so avail = ImGui.GetContentRegionAvail().X measures the FULL content region width — not the leftover after a partially-consumed row
+- 04-08: rescanWidth = 110f * ImGuiHelpers.GlobalScale and settingsWidth = 80f * ImGuiHelpers.GlobalScale — literal-pixel button widths multiplied by FFXIV UI scale so frames grow with scaled fonts; closes GAP-E1 (the user-visible mechanism that 04-07's correct-but-insufficient fix didn't address)
+- 04-08 lesson: when a UAT-round-N fix doesn't close the user-visible report on round N+1, re-derive the pixel arithmetic at the user's actual UI scale BEFORE attempting another math-only fix — round-N math correctness does not imply round-N causal sufficiency
 
 ### Pending Todos
 
@@ -94,6 +98,6 @@ No implementation blockers. Local macOS compiler verification is intentionally r
 
 ## Session Continuity
 
-Last session: 2026-05-08T05:24:01Z
-Stopped at: Completed 04-07-PLAN.md (Phase 4 gap-closure for GAP-D1 + GAP-D2)
+Last session: 2026-05-08T05:34:00Z
+Stopped at: Completed 04-08-PLAN.md (Phase 4 gap-closure for GAP-E1, supersedes GAP-D1's user-visible mechanism)
 Resume file: None
