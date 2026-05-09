@@ -1,3 +1,4 @@
+using Dalamud.Interface.Utility;
 using Dalamud.Interface.Windowing;
 using Dalamud.Plugin.Services;
 using Dalamud.Bindings.ImGui;
@@ -118,9 +119,14 @@ public class DailyRouteWindow : Window
 
         ImGui.Text($"Bought: {boughtCount}/{totalItems}   Listed: {listedCount}/{totalItems}");
 
-        ImGui.SameLine();
-        const float rescanWidth = 110f;
-        const float settingsWidth = 80f;
+        // GAP-E1 (04-08): buttons on their OWN row (no SameLine after the Text) so
+        // avail = ImGui.GetContentRegionAvail().X measures the full content region
+        // width, not the remainder of a partially-consumed row. Button widths are
+        // multiplied by ImGuiHelpers.GlobalScale so the 110/80 base sizes grow with
+        // the FFXIV UI scale and "Rescan Route" fits inside the frame at scale > 1.0.
+        // See .planning/debug/rescan-button-still-cut-off-2.md for the pixel arithmetic.
+        var rescanWidth = 110f * ImGuiHelpers.GlobalScale;
+        var settingsWidth = 80f * ImGuiHelpers.GlobalScale;
         // Source the gap from runtime ImGui style so it tracks Dalamud's UI scale —
         // the SameLine() between Settings and Rescan below uses this same value.
         // (Hardcoding 8f overflowed Rescan past the right edge at FFXIV UI scale > 1.0;
