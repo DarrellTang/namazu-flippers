@@ -331,6 +331,14 @@ require_pattern "NamazuFlippers/UI/DailyRouteWindow.cs" \
   "settingsWidth[[:space:]]*=[[:space:]]*80f[[:space:]]*\*[[:space:]]*ImGuiHelpers\.GlobalScale" \
   "settingsWidth multiplied by ImGuiHelpers.GlobalScale (GAP-E1, 04-08)"
 
+echo
+echo "Inline velocity label so users can judge profit-per-sale vs sales-per-day"
+require_all_patterns "NamazuFlippers/UI/DailyRouteWindow.cs" \
+  "DrawItems renders inline velocity label after +profit/day" \
+  "velocityLabel" \
+  "TextDisabled\\(velocityLabel\\)" \
+  "item\\.SalesPerDay >= 1\\.0"
+
 if [[ "$failures" -ne 0 ]]; then
   printf '\nPhase 04 Nyquist validation failed: %d check(s) failed.\n' "$failures" >&2
   exit 1

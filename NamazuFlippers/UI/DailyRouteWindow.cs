@@ -235,7 +235,9 @@ public class DailyRouteWindow : Window
                 if (ImGui.IsItemHovered())
                 {
                     ImGui.BeginTooltip();
-                    ImGui.Text($"Avg {item.SalesPerDay:F1} sales/day");
+                    ImGui.Text($"Avg {item.SalesPerDay:F2} sales/day");
+                    if (item.SalesPerDay > 0)
+                        ImGui.Text($"~{1.0 / item.SalesPerDay:F1} days between sales");
                     ImGui.EndTooltip();
                 }
 
@@ -254,6 +256,17 @@ public class DailyRouteWindow : Window
                 ImGui.TextColored(PurchaseCyan, $"Buy: {item.PurchasePrice:n0}");
                 ImGui.SameLine();
                 ImGui.TextColored(GilGold, $"+{item.ExpectedDailyProfit:n0}/day");
+
+                // Inline velocity hint so the user can judge whether the daily-profit number
+                // comes from many small sales (~fast) or few big sales with a wait (~slow).
+                // Compact format: "2.4/d" when >= 1/day, "~Nd" (rounded) when < 1/day.
+                ImGui.SameLine();
+                var velocityLabel = item.SalesPerDay >= 1.0
+                    ? $"{item.SalesPerDay:F1}/d"
+                    : item.SalesPerDay > 0
+                        ? $"~{Math.Max(1, (int)Math.Round(1.0 / item.SalesPerDay))}d"
+                        : "—";
+                ImGui.TextDisabled(velocityLabel);
 
                 // Anchor the Listed checkbox + price label to a fixed X column right-aligned
                 // inside the row, so the checkbox lands in the same column on every item
