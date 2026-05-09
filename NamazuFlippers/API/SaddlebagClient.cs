@@ -183,9 +183,12 @@ public sealed class SaddlebagClient
     {
         int.TryParse(raw.ItemId, NumberStyles.Integer, CultureInfo.InvariantCulture, out var itemId);
 
-        // sale_rates is sales/day on the home server averaged over hours_ago.
-        // Cross-checked against regionWeekly* counts on both high- and low-velocity items.
-        double.TryParse(raw.SaleRates, NumberStyles.Float, CultureInfo.InvariantCulture, out var salesPerDay);
+        // sale_rates is sales/HOUR averaged over hours_ago, NOT sales/day.
+        // Verified: with min_sales=2, hours_ago=168, the lowest sale_rates returned is
+        // 0.0119 = 2/168, confirming the rate is per hour. Convert to per-day so
+        // Configuration.MinSalesPerDay compares like-units in IsUsable().
+        double.TryParse(raw.SaleRates, NumberStyles.Float, CultureInfo.InvariantCulture, out var salesPerHour);
+        var salesPerDay = salesPerHour * 24;
 
         var isOutOfStock = raw.HomeServerPrice >= OutOfStockSentinel;
 

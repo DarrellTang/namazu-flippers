@@ -13,7 +13,8 @@ internal sealed class RawScanResponse
 
 /// <summary>
 /// Wire-shape DTO for a single row inside the Saddlebag /api/scan response.
-/// Matches the live API: item_id is a string, sale_rates is a string,
+/// Matches the live API: item_id is a string, sale_rates is a string
+/// (sales per HOUR, NOT per day — derive per-day by multiplying by 24),
 /// home_server_price uses 999_999_999 as an out-of-stock sentinel,
 /// profit_amount is per-unit and already accounts for the 5% market tax.
 /// </summary>

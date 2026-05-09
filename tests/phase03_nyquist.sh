@@ -220,6 +220,16 @@ require_all_patterns "NamazuFlippers/NamazuFlippers.cs" "latest scan state and e
   "result\\.Opportunities\\.Count" \
   "result\\.TotalExpectedDailyProfit"
 
+echo
+echo "SCAN-05: sale_rates is sales/HOUR — convert to sales/day before MinSalesPerDay compare"
+# Saddlebag /api/scan returns sale_rates as sales-per-HOUR averaged over hours_ago
+# (verified empirically: with min_sales=2 and hours_ago=168, the lowest sale_rates
+# observed is 2/168 = 0.0119). Treating it as per-day under-reports velocity by 24x
+# and silently rejects most non-furniture items at the IsUsable MinSalesPerDay floor.
+require_all_patterns "NamazuFlippers/API/SaddlebagClient.cs" "MapItem converts sale_rates from per-hour to per-day" \
+  "TryParse\\(raw\\.SaleRates,.*out var salesPerHour\\)" \
+  "salesPerHour \\* 24"
+
 if [[ "$failures" -ne 0 ]]; then
   printf '\nPhase 03 Nyquist validation failed: %d check(s) failed.\n' "$failures" >&2
   exit 1
