@@ -109,13 +109,18 @@ public class DailyRouteWindow : Window
 
     private void DrawProgressSection(ScanEngineResult? result)
     {
-        var totalItems = result?.Opportunities.Count ?? 0;
-        var boughtCount = result?.Opportunities.Count(o => boughtState.GetValueOrDefault(o.ItemId)) ?? 0;
-        var listedCount = result?.Opportunities.Count(o => listedState.GetValueOrDefault(o.ItemId)) ?? 0;
+        // Counters reflect the route the user actually sees. After the GAP-F2 cumulative
+        // budget fix, result.Opportunities is the unbounded post-budget candidate pool
+        // (can be hundreds); the route is RouteStops, trimmed to MaxItemsPerSession.
+        // Iterating RouteStops keeps Bought/Listed denominators aligned with the rendered rows.
+        var routeItems = result?.RouteStops.SelectMany(stop => stop.Items).ToList() ?? [];
+        var totalItems = routeItems.Count;
+        var boughtCount = routeItems.Count(o => boughtState.GetValueOrDefault(o.ItemId));
+        var listedCount = routeItems.Count(o => listedState.GetValueOrDefault(o.ItemId));
         var totalProfit = result?.TotalExpectedDailyProfit ?? 0;
-        var listedProfit = result?.Opportunities
+        var listedProfit = routeItems
             .Where(o => listedState.GetValueOrDefault(o.ItemId))
-            .Sum(o => o.ExpectedDailyProfit) ?? 0;
+            .Sum(o => o.ExpectedDailyProfit);
 
         ImGui.Text($"Bought: {boughtCount}/{totalItems}   Listed: {listedCount}/{totalItems}");
 

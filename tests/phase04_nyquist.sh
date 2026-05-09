@@ -339,6 +339,21 @@ require_all_patterns "NamazuFlippers/UI/DailyRouteWindow.cs" \
   "TextDisabled\\(velocityLabel\\)" \
   "item\\.SalesPerDay >= 1\\.0"
 
+echo
+echo "Bought/Listed counters reflect the rendered route, not the unbounded candidate pool"
+# Post-GAP-F2 the cumulative budget pre-filter leaves result.Opportunities unbounded;
+# Bought/Listed counters must aggregate from RouteStops.SelectMany(s => s.Items)
+# so the denominator matches what's actually displayed.
+require_all_patterns "NamazuFlippers/UI/DailyRouteWindow.cs" \
+  "DrawProgressSection counts from RouteStops, not Opportunities" \
+  "result\\?\\.RouteStops\\.SelectMany\\(stop => stop\\.Items\\)" \
+  "var totalItems = routeItems\\.Count" \
+  "routeItems\\.Count\\(o => boughtState" \
+  "routeItems\\.Count\\(o => listedState"
+require_absent_pattern "NamazuFlippers/UI/DailyRouteWindow.cs" \
+  "result\\?\\.Opportunities\\.Count" \
+  "DrawProgressSection no longer reads result.Opportunities.Count (was unbounded)"
+
 if [[ "$failures" -ne 0 ]]; then
   printf '\nPhase 04 Nyquist validation failed: %d check(s) failed.\n' "$failures" >&2
   exit 1
