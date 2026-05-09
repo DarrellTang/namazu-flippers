@@ -15,8 +15,35 @@ public sealed class RouteOptimizer
 
         var stopLimit = Math.Max(1, configuration.MaxServersToVisit);
         var itemLimit = Math.Max(1, configuration.MaxItemsPerSession);
+        var budget = configuration.MaxBudgetPerSession;
 
-        var selectedStops = opportunities
+        // Apply the cumulative budget cap BEFORE grouping into stops: walk items in
+        // profit-rank order and keep each one whose CheapestPrice fits the remaining
+        // budget. Items above the remaining budget are skipped — keep filling with
+        // cheaper-but-profitable items rather than stopping at the first overage.
+        // Set MaxBudgetPerSession to 0 to disable the cap entirely.
+        IReadOnlyList<RankedOpportunity> withinBudget;
+        if (budget <= 0)
+        {
+            withinBudget = opportunities;
+        }
+        else
+        {
+            var kept = new List<RankedOpportunity>(opportunities.Count);
+            long spent = 0;
+            foreach (var item in opportunities)
+            {
+                var remaining = budget - spent;
+                if (item.PurchasePrice <= remaining)
+                {
+                    kept.Add(item);
+                    spent += item.PurchasePrice;
+                }
+            }
+            withinBudget = kept;
+        }
+
+        var selectedStops = withinBudget
             .GroupBy(opportunity => opportunity.PurchaseSource, StringComparer.OrdinalIgnoreCase)
             .Select(group => CreateRouteStop(group, configuration.HomeWorld))
             .OrderBy(stop => stop, new RouteStopComparer())

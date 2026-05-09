@@ -261,8 +261,11 @@ public class DailyRouteWindow : Window
                 // Computing the X each frame from GetContentRegionMax keeps the column resilient
                 // if the window is later resized; window is currently locked at 420px width.
                 // Width budget for the trailing column = checkbox (~22 px) + ItemSpacing
-                // (~8 px scaled) + "List: 9,999,999" worst-case label (~120 px) ≈ 150 px.
-                const float listedColumnWidth = 150f;
+                // (~8 px scaled) + "List: 9,999,999" worst-case label (~150 px at scale 1.0).
+                // Multiplied by GlobalScale so the column grows with FFXIV UI scale (same fix
+                // as the GAP-E1 button widths). 180f base accommodates 7-digit prices that
+                // appear once non-furniture items pass MinSalesPerDay.
+                var listedColumnWidth = 180f * ImGuiHelpers.GlobalScale;
                 var rowCursorPosX = ImGui.GetCursorPosX();
                 var contentMaxX = ImGui.GetWindowContentRegionMax().X;
                 var listedAnchorX = contentMaxX - listedColumnWidth;

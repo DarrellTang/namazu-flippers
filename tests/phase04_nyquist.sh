@@ -164,7 +164,7 @@ require_pattern "NamazuFlippers/UI/ConfigWindow.cs" "HomeWorld" "HomeWorld prope
 require_pattern "NamazuFlippers/UI/ConfigWindow.cs" "PreferredRoi" "PreferredRoi widget (CONF-02)"
 require_pattern "NamazuFlippers/UI/ConfigWindow.cs" "MinProfitAmount" "MinProfitAmount widget (CONF-02)"
 require_pattern "NamazuFlippers/UI/ConfigWindow.cs" "MinDesiredAvgPpu" "MinDesiredAvgPpu widget (CONF-02)"
-require_pattern "NamazuFlippers/UI/ConfigWindow.cs" "MaxBudgetPerItem" "MaxBudgetPerItem widget (CONF-02)"
+require_pattern "NamazuFlippers/UI/ConfigWindow.cs" "MaxBudgetPerSession" "MaxBudgetPerSession widget (CONF-02)"
 require_pattern "NamazuFlippers/UI/ConfigWindow.cs" "MinSalesPerDay" "MinSalesPerDay widget (CONF-03)"
 require_pattern "NamazuFlippers/UI/ConfigWindow.cs" "MinSalesPerWeek" "MinSalesPerWeek widget (CONF-03)"
 require_pattern "NamazuFlippers/UI/ConfigWindow.cs" "RegionWide" "RegionWide checkbox (CONF-04)"

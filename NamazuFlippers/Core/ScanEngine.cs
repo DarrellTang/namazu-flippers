@@ -116,12 +116,15 @@ public sealed class ScanEngine
             if (items.Count == 0)
                 return (response, EmptyResult("No opportunities matched your current settings."));
 
+            // Final item-count cap is enforced by RouteOptimizer.TrimItemsPreservingStopOrder
+            // after the cumulative-budget filter. Truncating here would block the budget
+            // filter from skipping past too-expensive top-rank items to find affordable
+            // ones lower in the list.
             var opportunities = items
                 .Where(item => IsUsable(item, configuration))
                 .OrderByDescending(item => item.ExpectedDailyProfit)
                 .ThenByDescending(item => item.SalesPerDay)
                 .ThenBy(item => item.CheapestPrice)
-                .Take(Math.Max(1, configuration.MaxItemsPerSession))
                 .Select(ToOpportunity)
                 .ToList();
 
@@ -189,8 +192,7 @@ public sealed class ScanEngine
         item.HomePrice > 0 &&
         item.CheapestPrice > 0 &&
         item.ExpectedDailyProfit > 0 &&
-        item.SalesPerDay >= Math.Max(config.MinSalesPerDay, double.Epsilon) &&
-        (config.MaxBudgetPerItem <= 0 || item.CheapestPrice <= config.MaxBudgetPerItem);
+        item.SalesPerDay >= Math.Max(config.MinSalesPerDay, double.Epsilon);
 
     private static RankedOpportunity ToOpportunity(ScanItem item) => new()
     {

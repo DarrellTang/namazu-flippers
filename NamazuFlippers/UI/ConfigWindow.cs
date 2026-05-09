@@ -124,16 +124,16 @@ public class ConfigWindow : Window
                 isDirty = true;
             }
 
-            var budget = plugin.Configuration.MaxBudgetPerItem;
+            var budget = plugin.Configuration.MaxBudgetPerSession;
             if (ImGui.InputInt("Budget Cap (gil)", ref budget))
             {
-                plugin.Configuration.MaxBudgetPerItem = Math.Max(0, budget);
+                plugin.Configuration.MaxBudgetPerSession = Math.Max(0, budget);
                 isDirty = true;
             }
             if (ImGui.IsItemHovered())
             {
                 ImGui.BeginTooltip();
-                ImGui.Text("Set to 0 to disable the budget cap");
+                ImGui.Text("Total gil to spend across the whole route. Set to 0 to disable.");
                 ImGui.EndTooltip();
             }
         }
@@ -349,7 +349,7 @@ public class ConfigWindow : Window
             PreferredRoi            = source.PreferredRoi,
             MinProfitAmount         = source.MinProfitAmount,
             MinDesiredAvgPpu        = source.MinDesiredAvgPpu,
-            MaxBudgetPerItem        = source.MaxBudgetPerItem,
+            MaxBudgetPerSession        = source.MaxBudgetPerSession,
             MinSalesPerDay          = source.MinSalesPerDay,
             MinSalesPerWeek         = source.MinSalesPerWeek,
             RegionWide              = source.RegionWide,
@@ -371,7 +371,7 @@ public class ConfigWindow : Window
         target.PreferredRoi            = snapshot.PreferredRoi;
         target.MinProfitAmount         = snapshot.MinProfitAmount;
         target.MinDesiredAvgPpu        = snapshot.MinDesiredAvgPpu;
-        target.MaxBudgetPerItem        = snapshot.MaxBudgetPerItem;
+        target.MaxBudgetPerSession        = snapshot.MaxBudgetPerSession;
         target.MinSalesPerDay          = snapshot.MinSalesPerDay;
         target.MinSalesPerWeek         = snapshot.MinSalesPerWeek;
         target.RegionWide              = snapshot.RegionWide;
@@ -392,7 +392,7 @@ public class ConfigWindow : Window
         target.PreferredRoi            = 25;
         target.MinProfitAmount         = 10000;
         target.MinDesiredAvgPpu        = 10000;
-        target.MaxBudgetPerItem        = 1_000_000;
+        target.MaxBudgetPerSession        = 1_000_000;
         target.MinSalesPerDay          = 0.33;
         target.MinSalesPerWeek         = 2;
         target.RegionWide              = false;

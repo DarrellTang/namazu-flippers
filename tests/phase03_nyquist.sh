@@ -113,11 +113,13 @@ require_all_patterns "NamazuFlippers/Core/ScanEngine.cs" "invalid scan rows are 
   "item\\.CheapestPrice > 0" \
   "item\\.ExpectedDailyProfit > 0" \
   "item\\.SalesPerDay > 0"
-require_all_patterns "NamazuFlippers/Core/ScanEngine.cs" "ranking is deterministic and capped" \
+require_all_patterns "NamazuFlippers/Core/ScanEngine.cs" "ranking is deterministic" \
   "OrderByDescending\\(item => item\\.ExpectedDailyProfit\\)" \
   "ThenByDescending\\(item => item\\.SalesPerDay\\)" \
-  "ThenBy\\(item => item\\.CheapestPrice\\)" \
-  "Take\\(Math\\.Max\\(1, configuration\\.MaxItemsPerSession\\)\\)"
+  "ThenBy\\(item => item\\.CheapestPrice\\)"
+# Final item-count cap moved to RouteOptimizer.TrimItemsPreservingStopOrder so the
+# RouteOptimizer cumulative budget filter (GAP-F2) can skip past too-expensive
+# top-rank items and reach affordable ones below.
 require_all_patterns "NamazuFlippers/Core/ScanEngine.cs" "fresh scan returns structured success, empty, and error outcomes" \
   "Status = ScanEngineStatus\\.Success" \
   "Status = ScanEngineStatus\\.Empty" \
@@ -229,6 +231,15 @@ echo "SCAN-05: sale_rates is sales/HOUR — convert to sales/day before MinSales
 require_all_patterns "NamazuFlippers/API/SaddlebagClient.cs" "MapItem converts sale_rates from per-hour to per-day" \
   "TryParse\\(raw\\.SaleRates,.*out var salesPerHour\\)" \
   "salesPerHour \\* 24"
+
+echo
+echo "GAP-F2: cumulative budget cap is applied in RouteOptimizer (per-session, not per-item)"
+require_all_patterns "NamazuFlippers/Core/RouteOptimizer.cs" "RouteOptimizer enforces cumulative MaxBudgetPerSession" \
+  "configuration\\.MaxBudgetPerSession" \
+  "spent \\+= item\\.PurchasePrice" \
+  "item\\.PurchasePrice <= remaining"
+require_absent_pattern "NamazuFlippers/Core/ScanEngine.cs" "MaxBudgetPerItem|MaxBudgetPerSession" \
+  "ScanEngine no longer enforces budget cap (moved to RouteOptimizer for cumulative semantics)"
 
 if [[ "$failures" -ne 0 ]]; then
   printf '\nPhase 03 Nyquist validation failed: %d check(s) failed.\n' "$failures" >&2

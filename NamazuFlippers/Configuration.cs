@@ -59,11 +59,13 @@ public class Configuration : IPluginConfiguration
     public int MinDesiredAvgPpu { get; set; } = 10000;
 
     /// <summary>
-    /// Maximum gil to spend on a single item (per-unit purchase price).
-    /// Items with CheapestPrice above this are filtered out client-side.
+    /// Maximum cumulative gil to spend across the entire route in one session.
+    /// RouteOptimizer takes items in profit-rank order and stops adding once the
+    /// running sum of CheapestPrice would exceed this cap. Items priced above the
+    /// remaining budget are skipped, not the entire route.
     /// Set to 0 to disable the budget cap.
     /// </summary>
-    public int MaxBudgetPerItem { get; set; } = 1_000_000;
+    public int MaxBudgetPerSession { get; set; } = 1_000_000;
 
     /// <summary>
     /// Minimum sales per day on the home server. Below this floor the API's
