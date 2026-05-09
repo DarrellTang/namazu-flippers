@@ -1,157 +1,201 @@
 ---
 phase: 04-core-ui
-verified: 2026-05-08T00:00:00Z
-status: passed
-score: 8/8 must-haves verified
+verified: 2026-05-08T05:30:40Z
+status: human_needed
+score: 8/8 must-haves verified at source level
 overrides_applied: 0
 re_verification:
-  previous_status: human_needed
+  previous_status: passed
   previous_score: 8/8
+  trigger: "Second UAT round on build 1.0.26.0 surfaced GAP-D1 (Rescan clipped at non-1.0 UI scale) and GAP-D2 (Listed checkbox column drift); plan 04-07 closed both at the source level."
   gaps_closed:
-    - "GAP-A1 (UAT Test 1): Profit tally now updates correctly — isHomeStop gate removed; listed-checkbox renders on every item row in every RouteStop; listedState populates as user checks items; LINQ tally sums ExpectedDailyProfit for listed items each frame"
-    - "GAP-B1 (UAT Test 3): Settings button is now visible inside DailyRouteWindow at 420px — combinedWidth arithmetic reserves 198px before SetCursorPosX; Settings renders first then SameLine + Rescan, both within the content region"
-    - "GAP-B2 (UAT Test 3): Rescan Route button no longer clipped — same fix as GAP-B1; combined-width right-alignment prevents overflow"
-    - "GAP-C1 (UAT Test 3): Discard now correctly reverts edits — OnOpen guards snapshot capture with !isDirty so Dalamud's spurious post-OnClose re-open cannot corrupt the snapshot; RestoreFrom(snapshot) runs against the genuine pre-edit copy"
+    - "GAP-D1 (UAT Test 2, build 1.0.26.0): const float buttonSpacing = 8f replaced with var buttonSpacing = ImGui.GetStyle().ItemSpacing.X — Rescan reservation now tracks Dalamud's UI-scale-driven actual SameLine() gap. Verified at DailyRouteWindow.cs:128."
+    - "GAP-D2 (UAT Test 1, build 1.0.26.0): bare ImGui.SameLine() before ##listed- replaced with ImGui.SameLine(listedAnchorX) where listedAnchorX = GetWindowContentRegionMax().X - 150f. Verified at DailyRouteWindow.cs:259-268. Bare-SameLine fallback when row width exceeds anchor."
+    - "All four UAT-1 gaps (GAP-A1 profit tally, GAP-B1 Settings visible, GAP-B2 Rescan visible at scale 1.0, GAP-C1 Discard reverts) remain closed; nyquist regression assertions for 04-04 and 04-06 still pass."
   gaps_remaining: []
   regressions: []
+human_verification:
+  - test: "Listed checkbox column alignment at runtime UI scale"
+    expected: "Open DailyRouteWindow with today's scan loaded on a build > 1.0.26.0. Every item row's Listed checkbox lands in the same X column regardless of item-name length, [OOS] / [Vendor] badges, Buy price digit count, or +profit/day digit count. Toggling any Listed checkbox still updates the GilGold profit tally."
+    why_human: "GAP-D2 fix is layout-pixel positioning that only manifests when ImGui actually renders the window in-game; source-level grep cannot validate visual column alignment across variable-width rows."
+    closes_gap: "GAP-D2"
+    build_required: "> 1.0.26.0 (post-merge CI build)"
+  - test: "Rescan Route button visible at FFXIV UI scale > 1.0"
+    expected: "On a build > 1.0.26.0, set FFXIV UI scale to a non-1.0 value (1.5x is the user's reported scale). Open DailyRouteWindow at default 420px width. Both Settings and Rescan Route buttons render fully inside the content region with no right-edge clipping. Click Rescan Route — the disabled state engages while ScanInProgress, then re-enables."
+    why_human: "GAP-D1 fix replaces a hardcoded 8px spacing with a runtime ItemSpacing read; the bug only manifests at non-1.0 UI scale, which the local source-validation gate cannot exercise. The user UAT on 1.0.26.0 caught this exact bug; re-UAT on the next build is the authoritative gate."
+    closes_gap: "GAP-D1"
+    build_required: "> 1.0.26.0 (post-merge CI build)"
 ---
 
-# Phase 4: Core UI Verification Report (Re-verification)
+# Phase 4: Core UI Verification Report (Re-verification, Round 2)
 
 **Phase Goal:** Player sees today's route in an ImGui window, clicks through items, and tracks profit
-**Verified:** 2026-05-08T00:00:00Z
-**Status:** passed
-**Re-verification:** Yes — after gap closure plans 04-04, 04-05, 04-06
+**Verified:** 2026-05-08T05:30:40Z
+**Status:** human_needed
+**Re-verification:** Yes — after second UAT round (build 1.0.26.0) and gap-closure plan 04-07
 
-## Goal Achievement
+## Verdict
 
-All 8 roadmap success criteria are verified in code. The three UAT gaps reported after the first UAT session have been closed by gap-closure plans 04-04, 04-05, and 04-06. The nyquist gate passes 56/56 checks at exit 0, including 6 new gap-closure regression assertions.
+**PASS_WITH_NOTES (source level)** — all 8 roadmap success criteria are present and correctly wired in the codebase, the local source-validation gate (`tests/phase04_nyquist.sh`) passes 56/56 with all UAT-driven regression assertions for 04-04, 04-06, and 04-07 in place, and Phase 3 source files (RouteStop.cs, RouteOptimizer.cs, ScanEngine.cs) plus `tests/phase03_nyquist.sh` are unchanged across this phase except for one documented mechanical update in 04-01 (`isVisible` → `dailyRouteWindow.IsOpen` rename in a phase03 assertion, called out in 04-01-SUMMARY.md). The phase03 nyquist baseline (exit 1, 2 pre-existing SCAN-01 failures) is preserved.
 
-The previous `human_needed` status was driven by runtime behavior that cannot be inspected from source. The UAT was conducted, gaps were diagnosed and fixed at the source level, and this re-verification confirms all three gap closures are present and correct in the actual source files. No further runtime-only items remain that were not already assessed during UAT.
+The two open in-game items (`human_verification` above) are the 04-07 layout fixes that closed source-level after the 1.0.26.0 UAT but cannot be confirmed without running on a build > 1.0.26.0 in-game. The user explicitly asked for in-game UAT on the next build as the ship-level gate.
 
-### Observable Truths (Roadmap Success Criteria)
+## Phase Goal Achievement
+
+### Observable Truths (Roadmap Success Criteria — UI-01..UI-08)
 
 | # | Truth | Status | Evidence |
 |---|-------|--------|----------|
-| 1 | DailyRouteWindow shows route with server stops, items, prices, and expected profit | VERIFIED | `DailyRouteWindow.cs:78-79` — `foreach (var stop in result.RouteStops) DrawRouteStop(stop, result)`; `DrawRouteStop` renders `CollapsingHeader` per stop; `DrawItems` renders `Buy: {item.PurchasePrice:n0}` (PurchaseCyan) and `+{item.ExpectedDailyProfit:n0}/day` (GilGold) per item |
-| 2 | Each item has a clickable checkbox to mark "bought" | VERIFIED | `DailyRouteWindow.cs:213-214` — `ImGui.Checkbox($"##bought-{item.ItemId}", ref bought)` wired to `boughtState[item.ItemId] = bought` on click; name renders in CompletedGray when bought |
-| 3 | Listed checkboxes allow tracking items to list | VERIFIED | `DailyRouteWindow.cs:250-251` — `##listed-{item.ItemId}` renders on every item row in every RouteStop (gap-closure 04-04 removed the unreachable isHomeStop gate); `listedState[item.ItemId] = listed` on click |
-| 4 | Running profit tally updates in real time | VERIFIED | `DailyRouteWindow.cs:115-117` — LINQ `.Where(o => listedState.GetValueOrDefault(o.ItemId)).Sum(o => o.ExpectedDailyProfit)` computed each frame; rendered as `ImGui.TextColored(GilGold, $"Profit: {listedProfit:n0} / {totalProfit:n0} gil")` at line 155; gap-closure 04-04 ensures listedState is actually populated |
-| 5 | Progress bar shows bought/total and listed/total completion | VERIFIED | `DailyRouteWindow.cs:144-153` — two `ImGui.ProgressBar` calls with `PushStyleColor(PlotHistogram, SuccessGreen)` and `PushStyleColor(PlotHistogram, PurchaseCyan)` using real fractions from boughtState/listedState counts |
-| 6 | OOS items are visually distinct (color/icon) | VERIFIED | `DailyRouteWindow.cs:220-221, 232-235` — `item.OutOfStock` renders name in OosOrange; `[OOS]` badge in OosOrange; confirmed by nyquist UI-06 assertion |
-| 7 | Completed server stops auto-collapse | VERIFIED | `DailyRouteWindow.cs:160-172` — `stop.Items.All(...)` predicate; `ImGui.SetNextItemOpen(false, ImGuiCond.Always)` fires on first all-bought frame; `autoCollapsedStops[stop.PurchaseSource]` flag prevents re-fire; reset on un-check; confirmed by nyquist UI-07 assertion |
-| 8 | ConfigWindow exposes all settings from CONF-01 through CONF-09 | VERIFIED | `ConfigWindow.cs` — 7 CollapsingHeader sections covering all 14 Configuration properties; Save/Reset/modals all present; `OnOpen` correctly guarded with `!isDirty` (gap-closure 04-06) so Discard reverts correctly; nyquist 17 CONF-01..09 pattern assertions all pass |
+| 1 | DailyRouteWindow shows route with server stops, items, prices, and expected profit | VERIFIED | `DailyRouteWindow.cs:78-79` foreach over `result.RouteStops` calls `DrawRouteStop`; `DrawRouteStop` (lines 162-207) renders `CollapsingHeader` per stop; `DrawItems` renders `Buy: {item.PurchasePrice:n0}` (PurchaseCyan, line 248) and `+{item.ExpectedDailyProfit:n0}/day` (GilGold, line 250) per item; `List: {item.HomePrice:n0}` (line 273) per item. |
+| 2 | Each item has a clickable checkbox to mark "bought" | VERIFIED | `DailyRouteWindow.cs:217-218` — `ImGui.Checkbox($"##bought-{item.ItemId}", ref bought)` writes to `boughtState[item.ItemId]`; bought items render in CompletedGray (line 222-223). |
+| 3 | Home stop shows items to list with "listed" checkboxes (now: every item row has a Listed checkbox) | VERIFIED | `DailyRouteWindow.cs:269-271` — `##listed-{item.ItemId}` renders on every item row in every RouteStop after gap-closure 04-04 removed the unreachable `isHomeStop` gate. Anchored to a fixed-X column via `ImGui.SameLine(listedAnchorX)` (line 266) per gap-closure 04-07 GAP-D2. |
+| 4 | Running profit tally updates in real time | VERIFIED | `DailyRouteWindow.cs:115-117` — `result?.Opportunities.Where(o => listedState.GetValueOrDefault(o.ItemId)).Sum(o => o.ExpectedDailyProfit)` recomputed each frame; rendered as `ImGui.TextColored(GilGold, $"Profit: {listedProfit:n0} / {totalProfit:n0} gil")` at line 159. UAT round 2 confirmed: "checking the listed checkbox does increase the accompanying status bar and updates the profit number." |
+| 5 | Progress bar shows bought/total and listed/total completion | VERIFIED | `DailyRouteWindow.cs:148-157` — two `ImGui.ProgressBar` calls with `PushStyleColor(PlotHistogram, SuccessGreen)` and `PushStyleColor(PlotHistogram, PurchaseCyan)` overrides; fractions computed from `boughtState`/`listedState` counts. |
+| 6 | OOS items are visually distinct (color/icon) | VERIFIED | `DailyRouteWindow.cs:224-225, 236-240` — `item.OutOfStock` renders item name in `OosOrange`; `[OOS]` badge in `OosOrange` after item name; bought items still render as CompletedGray (bought takes priority over OOS). |
+| 7 | Completed server stops auto-collapse | VERIFIED | `DailyRouteWindow.cs:164-176` — `stop.Items.All(item => boughtState.GetValueOrDefault(item.ItemId))` predicate; `ImGui.SetNextItemOpen(false, ImGuiCond.Always)` fires once on first all-bought frame; `autoCollapsedStops[stop.PurchaseSource]` flag prevents re-fire; reset to false when any item un-checked. ✓ checkmark prefix in collapsed label (lines 180-191). |
+| 8 | ConfigWindow exposes all settings from CONF-01 through CONF-09 | VERIFIED | `ConfigWindow.cs` — 7 `CollapsingHeader` sections covering all 14 Configuration properties; Save / Reset / unsaved-changes modal / Reset confirmation modal all present; OnOpen guarded with `!isDirty` (line 54, gap-closure 04-06) so Discard correctly reverts edits. |
 
-**Score:** 8/8 truths verified
+**Score:** 8/8 truths verified at source level
+
+### Phase Requirements Map
+
+| Requirement | Description | Source Plan(s) | Status | Evidence |
+|-------------|-------------|----------------|--------|----------|
+| UI-01 | DailyRouteWindow renders today's route with stops, items, prices | 04-01, 04-05, 04-07 | SATISFIED (source) | DrawProgressSection layout fits at 420px (04-05 combinedWidth, 04-07 runtime ItemSpacing); DrawRouteStop CollapsingHeaders per stop. |
+| UI-02 | Bought checkbox per item | 04-02 | SATISFIED | `##bought-{item.ItemId}` Checkbox wired to `boughtState`. |
+| UI-03 | Listed checkbox per item to track listing | 04-02, 04-04, 04-07 | SATISFIED (source) | `##listed-{item.ItemId}` renders on every item row (04-04 removed isHomeStop gate); column anchored to fixed X via SameLine(listedAnchorX) (04-07 GAP-D2). |
+| UI-04 | Running profit tally updates in real time | 04-02, 04-04 | SATISFIED | LINQ over `listedState` → `Sum(o.ExpectedDailyProfit)` per frame in GilGold; works because listedState now populates (UAT round 2 user-confirmed: "increase the accompanying status bar and updates the profit number"). |
+| UI-05 | Progress bars (bought + listed) | 04-02 | SATISFIED | Two ProgressBar calls with PlotHistogram color push, real fractions from state dicts. |
+| UI-06 | OOS visually distinct | 04-02 | SATISFIED | OosOrange item name + `[OOS]` badge; bought-CompletedGray takes priority. |
+| UI-07 | Server stops auto-collapse on completion | 04-02 | SATISFIED | SetNextItemOpen(false, ImGuiCond.Always) + per-stop autoCollapsedStops flag with reset logic. |
+| UI-08 | ConfigWindow exposes all CONF-01..09 settings | 04-03, 04-05, 04-06 | SATISFIED (source) | 14 Configuration properties wired across 7 CollapsingHeader sections; Settings button visible at 420px (04-05); Discard reverts correctly via `!isDirty` snapshot guard (04-06). |
+
+(CONF-01..09 individually covered in original 04-VERIFICATION.md table — preserved intact below by re-running the same nyquist assertions; all 17 CONF widgets pass.)
 
 ### Required Artifacts
 
 | Artifact | Expected | Status | Details |
 |----------|----------|--------|---------|
-| `tests/phase04_nyquist.sh` | Source-level validation gate for Phase 4 | VERIFIED | 56 assertions, exit 0; includes 4 gap-closure 04-04 regression assertions and 2 gap-closure 04-06 regression assertions |
-| `NamazuFlippers/UI/DailyRouteWindow.cs` | Window subclass rendering route, checkboxes, profit | VERIFIED | 261 lines; all 5 status states handled; listed-checkbox on every item row (no isHomeStop gate); combined-width button layout fits at 420px |
-| `NamazuFlippers/UI/ConfigWindow.cs` | Full settings editor with all CONF-01..09 widgets | VERIFIED | 408 lines; snapshot/dirty/discard plumbing with `!isDirty` guard in OnOpen; both modals; 3 `isDirty = false` assignments (Save button, modal Save path, modal Discard path) |
-| `NamazuFlippers/UI/UiColors.cs` | 9 locked color Vector4 constants | VERIFIED | 9 `public static readonly Vector4` fields matching UI-SPEC exactly |
-| `NamazuFlippers/UI/FirstRunWindow.cs` | Migrated to Window base class, no Func<bool> | VERIFIED | `class FirstRunWindow : Window`; confirmed by nyquist D-05/D-06 assertion |
-| `NamazuFlippers/NamazuFlippers.cs` | WindowSystem owner with all wiring | VERIFIED | WindowSystem field, 3x AddWindow, named OnOpenConfigUi handler, public ScanInProgress/RescanAsync/OpenConfigWindow, clean Dispose |
-| `NamazuFlippers/FirstRunWindow.cs` (root, deleted) | Must not exist | VERIFIED | Confirmed absent |
+| `tests/phase04_nyquist.sh` | Source-validation gate, exit 0 | VERIFIED | 56 assertions all pass; includes 4 GAP-A1 (04-04) regressions, 2 GAP-C1 (04-06) regressions, 3 GAP-D1 (04-07) regressions, 1 GAP-D2 (04-07) regression. Exit 0. |
+| `NamazuFlippers/UI/DailyRouteWindow.cs` | Window subclass with route + checkboxes + profit + layout | VERIFIED | 282 lines; all 5 ScanEngineStatus banners; combinedWidth right-alignment using runtime ItemSpacing; ##listed- on every row anchored to listedAnchorX. |
+| `NamazuFlippers/UI/ConfigWindow.cs` | Full settings editor with all CONF-01..09 + Save/Reset/Discard semantics | VERIFIED | 408 lines; snapshot/dirty/discard plumbing; OnOpen guarded with `!isDirty` (line 54); 3 isDirty=false sites (Save btn:267, modal Save:304, modal Discard:312); both modals (ConfirmReset, UnsavedChanges) present. |
+| `NamazuFlippers/UI/UiColors.cs` | 9 locked Vector4 color constants per UI-SPEC | VERIFIED | 9 `public static readonly Vector4` fields; all 6 nyquist color-token assertions pass. |
+| `NamazuFlippers/UI/FirstRunWindow.cs` | Migrated to Window base class, no Func<bool> | VERIFIED | `class FirstRunWindow : Window`; root copy deleted; nyquist D-05/D-06 assertion passes. |
+| `NamazuFlippers/NamazuFlippers.cs` | WindowSystem owner with all wiring | VERIFIED | WindowSystem field (line 30), 3x AddWindow (lines 78-80), named OnOpenConfigUi handler (line 140), public ScanInProgress / RescanAsync / OpenConfigWindow surface (lines 47-53), clean Dispose (lines 101-111). |
+| `NamazuFlippers/FirstRunWindow.cs` (root) | Must not exist | VERIFIED | Confirmed absent (`ls` returns "No such file or directory"). |
 
-### Key Link Verification
+### Key Link Verification (post-04-07)
 
 | From | To | Via | Status | Details |
 |------|----|-----|--------|---------|
-| `NamazuFlippers.cs` | `windowSystem.Draw` | `UiBuilder.Draw += windowSystem.Draw` | WIRED | Subscribe and unsubscribe both present |
-| `NamazuFlippers.cs` | `configWindow.IsOpen = true` | `private void OnOpenConfigUi()` | WIRED | Named handler (not anonymous lambda) — Pitfall 1 mitigation |
-| `DailyRouteWindow.Draw()` | `plugin.LatestScanResult` | Frame-level read with null guard | WIRED | Line 54 reads result; null guard at line 65 prevents route render on null/Empty/Error |
-| `DailyRouteWindow Rescan button` | `plugin.RescanAsync(CancellationToken.None)` | Button click handler | WIRED | Line 140; BeginDisabled/EndDisabled at lines 137-142 gates on `plugin.ScanInProgress` |
-| `DailyRouteWindow Settings button` | `plugin.OpenConfigWindow()` | Button click handler | WIRED | Line 134; Settings rendered first (line 133) before Rescan (line 139); combined-width layout confirmed at 420px |
-| `DailyRouteWindow DrawItems` | `listedState` dictionary | Checkbox on every item row (no isHomeStop gate) | WIRED | Lines 249-251; `##listed-{item.ItemId}` rendered unconditionally in per-item loop; gap-closure 04-04 |
-| `DailyRouteWindow DrawProgressSection` | `listedProfit` via listedState × ExpectedDailyProfit | LINQ per frame | WIRED | Lines 115-117; `.Where(listedState).Sum(ExpectedDailyProfit)` computed each frame |
-| `ConfigWindow.OnOpen` | `Snapshot(plugin.Configuration)` | Guarded by `!isDirty` | WIRED | Line 54 guard; line 56 snapshot capture inside guard; gap-closure 04-06 |
-| `ConfigWindow Discard button` | `RestoreFrom(snapshot, plugin.Configuration)` | Modal button handler | WIRED | Line 311; snapshot was captured at genuine open (isDirty=false), not corrupted by spurious re-open |
-| `ConfigWindow.Save button` | `pluginInterface.SavePluginConfig(plugin.Configuration)` | Direct call | WIRED | Line 265 (Save button) and line 302 (modal Save path) |
-| `ConfigWindow.Reset button` | `BeginPopupModal("ConfirmReset##config")` | `ImGui.OpenPopup` on click | WIRED | Line 273 opens popup; line 278 renders modal |
-| `ConfigWindow.OnClose` | Unsaved-changes modal | `showUnsavedModal = true` + `IsOpen = true` | WIRED | Lines 63-67 in OnClose; lines 73-77 in Draw() — trigger at top of Draw ensures popup opens same frame |
-| `ConfigWindow HomeWorld dropdown` | `WorldData.KnownWorlds` | `BeginCombo + Selectable` iteration | WIRED | Lines 86-100 |
-| `DailyRouteWindow` state wipe | `ReferenceEquals(result, lastSeenResult)` | Result-change detection | WIRED | Lines 69-75 — all three dicts cleared when result reference changes (D-09) |
-
-### Data-Flow Trace (Level 4)
-
-| Artifact | Data Variable | Source | Produces Real Data | Status |
-|----------|---------------|--------|-------------------|--------|
-| `DailyRouteWindow.Draw()` | `result` (ScanEngineResult?) | `plugin.LatestScanResult` set inside `RunScanAsync` (Phase 3 scanEngine.GetRouteAsync()) | Yes — API-backed scan result | FLOWING |
-| `DailyRouteWindow.DrawProgressSection` | `boughtCount`, `listedCount`, `listedProfit` | LINQ over `boughtState`/`listedState` dicts populated by Checkbox click handlers; `##listed-` now unconditionally rendered | Yes — real in-memory state from user clicks | FLOWING |
-| `ConfigWindow.Draw()` | All control values | `plugin.Configuration.*` — loaded from `pluginInterface.GetPluginConfig()` at startup | Yes — persisted config from disk | FLOWING |
+| `NamazuFlippers.cs` ctor | `windowSystem.Draw` | `UiBuilder.Draw += windowSystem.Draw` | WIRED | Subscribe line 92, unsubscribe line 106. |
+| `NamazuFlippers.cs` | `configWindow.IsOpen = true` | `OnOpenConfigUi` named method (line 140) | WIRED | Pitfall 1 mitigation — named handler, not anonymous lambda. |
+| `DailyRouteWindow.Draw()` | `plugin.LatestScanResult` | Frame-level read with null guard | WIRED | Line 54 reads result; line 65 null/Empty/Error early return. |
+| Rescan button | `plugin.RescanAsync(CancellationToken.None)` | Button click handler | WIRED | Line 144; BeginDisabled/EndDisabled (lines 141-146) guards on `plugin.ScanInProgress`. |
+| Settings button | `plugin.OpenConfigWindow()` | Button click handler | WIRED | Line 138; rendered first (left), Rescan rendered second (right) — combinedWidth right-alignment. |
+| `DrawProgressSection` reservation | `ImGui.GetStyle().ItemSpacing.X` | Runtime read each frame (line 128) | WIRED | GAP-D1 fix — replaces 04-05's `const float buttonSpacing = 8f` with runtime style read so reservation tracks Dalamud's UI-scale-driven actual gap. |
+| `DrawItems` listed-checkbox | `listedState[item.ItemId]` | Unconditional render in per-item loop | WIRED | Lines 269-271 — gap-closure 04-04 removed isHomeStop gate. |
+| `DrawItems` listed-checkbox | Fixed-X column | `ImGui.SameLine(listedAnchorX)` (line 266) with bare-SameLine fallback (line 268) | WIRED | GAP-D2 fix — listedAnchorX = GetWindowContentRegionMax().X - 150f computed each frame. |
+| `DrawProgressSection` profit tally | `listedState × ExpectedDailyProfit` | LINQ Where + Sum per frame | WIRED | Lines 115-117. |
+| `ConfigWindow.OnOpen` | `Snapshot(plugin.Configuration)` | Guarded by `!isDirty` (line 54) | WIRED | gap-closure 04-06 — distinguishes genuine open from Dalamud spurious post-OnClose re-open. |
+| Discard modal button | `RestoreFrom(snapshot, plugin.Configuration)` | Modal handler (line 311) | WIRED | Snapshot is captured at genuine open, not corrupted by spurious re-open — UAT round 2 confirmed pass. |
+| Save buttons (×2) | `pluginInterface.SavePluginConfig(plugin.Configuration)` | Direct call | WIRED | Save button line 265, modal Save line 302. |
+| Reset button | `BeginPopupModal("ConfirmReset##config")` | OpenPopup on click | WIRED | Line 273 opens, line 278 renders modal. |
+| `OnClose` | Unsaved-changes modal | `showUnsavedModal = true` + `IsOpen = true` | WIRED | Lines 63-67; trigger flushed at top of Draw (lines 73-77). |
+| `DailyRouteWindow` state wipe | `ReferenceEquals(result, lastSeenResult)` | Result-change detection | WIRED | Lines 69-75 — all 3 dicts cleared on result reference change (D-09). |
 
 ### Behavioral Spot-Checks
 
 | Behavior | Command | Result | Status |
 |----------|---------|--------|--------|
-| nyquist exit 0 (all 56 patterns including gap-closure) | `bash tests/phase04_nyquist.sh` | `Phase 04 Nyquist validation passed. EXIT:0` | PASS |
-| GAP-A1 closed: isHomeStop absent | `grep -c 'isHomeStop' DailyRouteWindow.cs` | 0 | PASS |
-| GAP-A1 closed: Configuration.HomeWorld absent in DailyRouteWindow | `grep -c 'Configuration\.HomeWorld' DailyRouteWindow.cs` | 0 | PASS |
-| GAP-A1 closed: ##listed- renders unconditionally | `grep -n '##listed-' DailyRouteWindow.cs` | line 250 — inside DrawItems, no if-gate | PASS |
-| GAP-B1/B2 closed: combinedWidth declared | `grep -c 'combinedWidth' DailyRouteWindow.cs` | 2 (declared + used) | PASS |
-| GAP-B1/B2 closed: Settings rendered before Rescan | `awk '/Button\("Settings"/{s=NR} /Button\("Rescan Route"/{r=NR} END{exit !(s<r)}'` | Settings line 133 < Rescan line 139 | PASS |
-| GAP-C1 closed: !isDirty guard in OnOpen | `grep -n 'if (!isDirty)' ConfigWindow.cs` | line 54 | PASS |
-| GAP-C1 closed: isDirty=false NOT in OnOpen | awk scan of OnOpen body | NOT FOUND (removed) | PASS |
-| GAP-C1 closed: isDirty=false count (Save + Discard paths) | `grep -c 'isDirty = false' ConfigWindow.cs` | 3 (Save btn, modal Save, modal Discard) | PASS |
+| Phase 04 nyquist passes | `bash tests/phase04_nyquist.sh` | exit 0; "Phase 04 Nyquist validation passed." | PASS |
+| Phase 03 nyquist baseline preserved | `bash tests/phase03_nyquist.sh` | exit 1; 2 pre-existing SCAN-01 failures (normalizer wrapper shapes, Where(IsUsable) filter) — count unchanged from documented baseline | PASS (baseline) |
+| isHomeStop string-compare absent | grep -nE "(isHomeStop\|Configuration\\.HomeWorld)" DailyRouteWindow.cs | (no matches) | PASS |
+| ##listed- renders unconditionally | grep -nE "##listed-" DailyRouteWindow.cs | line 270 inside DrawItems loop | PASS |
+| Runtime buttonSpacing read | grep -nE "buttonSpacing" DailyRouteWindow.cs | lines 128 (assigned from ImGui.GetStyle().ItemSpacing.X), 130 (used in combinedWidth) | PASS |
+| Const buttonSpacing = 8f gone | grep "const float buttonSpacing" DailyRouteWindow.cs | (no match) | PASS |
+| Listed anchor SameLine | grep -nE "SameLine\\(listedAnchorX\\)" DailyRouteWindow.cs | line 266 | PASS |
+| GetWindowContentRegionMax used | grep -nE "GetWindowContentRegionMax" DailyRouteWindow.cs | line 261 | PASS |
+| !isDirty guard | grep -nE "if \\(!isDirty\\)" ConfigWindow.cs | line 54 | PASS |
+| isDirty=false count | grep -cE "isDirty = false" ConfigWindow.cs | 3 (Save btn line 267, modal Save 304, modal Discard 312) | PASS |
+| Phase 3 source unchanged | git log --oneline -- NamazuFlippers/Core/RouteStop.cs RouteOptimizer.cs ScanEngine.cs | last commits: 2db776d (scan), 0ba88eb (scan), d4fb4a8 (03-02), 0cdcc23 (03-02), 537ca72 (03-02), 249237f (03-02), a60a19b (03-01) — none from phase 04 | PASS |
+| Phase 3 nyquist log | git log --oneline -- tests/phase03_nyquist.sh | 7fa7037 (orig) + cdeb1d8 (04-01 mechanical isVisible→IsOpen rename, documented in 04-01-SUMMARY) | PASS (deliberate, baseline) |
+| Root FirstRunWindow.cs absent | ls NamazuFlippers/FirstRunWindow.cs | "No such file or directory" | PASS |
+| Phase 4 commit 6607f56 (GAP-D1+D2 fix) | git log --oneline | 6607f56 fix(04-07): scale-aware buttonSpacing + listed checkbox column anchor | PASS |
+| Phase 4 commit 2424bff (GAP-D1+D2 nyquist) | git log --oneline | 2424bff test(04-07): nyquist regressions for GAP-D1 and GAP-D2 | PASS |
+| Phase 4 commit 141eba5 (04-07 SUMMARY) | git log --oneline | 141eba5 docs(04-07): complete Rescan clip + Listed alignment gap-closure plan | PASS |
 
-### Requirements Coverage
+### UAT Closure Map (Round 1 — build 1.0.25.0; Round 2 — build 1.0.26.0)
 
-| Requirement | Source Plan | Description | Status | Evidence |
-|-------------|-------------|-------------|--------|----------|
-| UI-01 | 04-01, 04-05 | DailyRouteWindow displays today's route: server stops in order, items to buy per stop with prices | SATISFIED | `DailyRouteWindow.cs` renders stops (CollapsingHeader per RouteStop), items (foreach stop.Items), prices (PurchaseCyan Buy, GilGold profit); button layout fixed for 420px by 04-05. REQUIREMENTS.md checkbox `[ ]` is a documentation tracking omission — the code satisfies the requirement. |
-| UI-02 | 04-02 | Each item has a checkbox to mark "bought" | SATISFIED | `##bought-{item.ItemId}` Checkbox wired to boughtState |
-| UI-03 | 04-02, 04-04 | Listed checkboxes allow tracking items to list | SATISFIED | `##listed-{item.ItemId}` now renders on every item row (gap-closure 04-04 removed isHomeStop gate) |
-| UI-04 | 04-02, 04-04 | Running profit tally updates in real time | SATISFIED | LINQ sum over listedState computed per frame; now works because listedState populates (gap-closure 04-04) |
-| UI-05 | 04-02 | Progress bars show completion | SATISFIED | Two ProgressBar calls with PlotHistogram color push, real fractions |
-| UI-06 | 04-02 | OOS items visually distinct | SATISFIED | OosOrange item name + [OOS] badge |
-| UI-07 | 04-02 | Completed server stops auto-collapse | SATISFIED | SetNextItemOpen(false, ImGuiCond.Always) + per-stop flag |
-| UI-08 | 04-03, 04-05, 04-06 | ConfigWindow exposes all CONF-01..09 settings | SATISFIED | 7 CollapsingHeader sections, 14 Configuration properties wired, Save/Reset/modals; Settings button visible at 420px (04-05); Discard reverts correctly (04-06) |
-| CONF-01 | 04-03 | User can set home world | SATISFIED | BeginCombo over WorldData.KnownWorlds |
-| CONF-02 | 04-03 | Profit thresholds UI | SATISFIED | PreferredRoi, MinProfitAmount, MinDesiredAvgPpu, MaxBudgetPerItem widgets |
-| CONF-03 | 04-03 | Velocity floor UI | SATISFIED | MinSalesPerDay SliderFloat, MinSalesPerWeek SliderInt |
-| CONF-04 | 04-03 | Region-wide toggle | SATISFIED | RegionWide Checkbox with tooltip |
-| CONF-05 | 04-03 | Category filters UI | SATISFIED | Furniture/Collectibles/Glamour checkboxes via ApplyCategoryToggle |
-| CONF-06 | 04-03 | Vendor/OOS toggles | SATISFIED | IncludeVendors, ShowOutOfStock checkboxes |
-| CONF-07 | 04-03 | Session caps UI | SATISFIED | MaxItemsPerSession (1-20), MaxServersToVisit (1-15) sliders |
-| CONF-08 | 04-03 | Cache duration UI | SATISFIED | CacheDurationHours slider (1-24) |
-| CONF-09 | Phase 1 + 04-03 | Settings persist across sessions | SATISFIED | ConfigWindow calls `pluginInterface.SavePluginConfig(plugin.Configuration)` |
+| Gap (build) | UAT Test | Severity | Closed By | Source-Level Verified | In-Game UAT |
+|-------------|----------|----------|-----------|-----------------------|-------------|
+| GAP-A1 (1.0.25.0) — profit tally shows zero | UAT-1 Test 1 | major | 04-04 | YES (isHomeStop gate removed; ##listed- on every row; LINQ over listedState) | Round 2 PASS — user: "checking the listed checkbox does increase the accompanying status bar and updates the profit number" |
+| GAP-B1 (1.0.25.0) — Settings button missing | UAT-1 Test 3 | major | 04-05 | YES (combinedWidth right-alignment) | Round 2 PASS — user: "Settings is there though" |
+| GAP-B2 (1.0.25.0) — Rescan clipped at 420px | UAT-1 Test 3 | minor | 04-05 (partial) + 04-07 (full) | YES (combinedWidth + runtime ItemSpacing) | Round 2 ISSUE on 1.0.26.0 ("Rescan route is still cut off") → re-closed in source by 04-07 GAP-D1; pending in-game UAT on > 1.0.26.0 |
+| GAP-C1 (1.0.25.0) — Discard does not revert | UAT-1 Test 3 | major | 04-06 | YES (`if (!isDirty)` snapshot guard) | Round 2 PASS — Test 3 result: pass |
+| GAP-D1 (1.0.26.0) — Rescan clipped at FFXIV UI scale > 1.0 | UAT-2 Test 2 | major | 04-07 | YES (`var buttonSpacing = ImGui.GetStyle().ItemSpacing.X`) | PENDING in-game UAT on build > 1.0.26.0 |
+| GAP-D2 (1.0.26.0) — Listed checkbox column drift | UAT-2 Test 1 | cosmetic | 04-07 | YES (`ImGui.SameLine(listedAnchorX)` with fallback) | PENDING in-game UAT on build > 1.0.26.0 |
 
 ### Anti-Patterns Found
 
-| File | Pattern | Severity | Impact |
-|------|---------|---------|--------|
-| `.planning/REQUIREMENTS.md` | UI-01 checkbox `[ ]` (Pending) despite implementation being complete | Info | Documentation tracking omission only; code satisfies UI-01 |
+| File | Line | Pattern | Severity | Impact |
+|------|------|---------|----------|--------|
+| `.planning/REQUIREMENTS.md` | 41 | `[x]` UI-01 (resolved by 2026-05-08 update) | Info | (Now correct — REQUIREMENTS.md was updated; UI-01..UI-08 all show `[x]` in current file. No action.) |
+| `.planning/debug/listed-checkbox-not-aligned.md` | — | Debug session not yet moved to `resolved/` | Info | Housekeeping; the underlying GAP-D2 is closed in source. Move post-merge once in-game UAT confirms. |
+| `.planning/debug/rescan-button-still-cut-off.md` | — | Debug session not yet moved to `resolved/` | Info | Housekeeping; the underlying GAP-D1 is closed in source. Move post-merge once in-game UAT confirms. |
 
-No code anti-patterns found. No TODO/FIXME/PLACEHOLDER comments in any Phase 4 source files. No stub implementations. No orphaned artifacts.
+No code anti-patterns. No TODO / FIXME / PLACEHOLDER comments in any Phase 4 source files. No stub implementations. No hardcoded empty-state returns.
 
-### Code Review Advisory Notes (WR-01 / WR-02 / WR-03)
+### Code Review Advisory Carry-Forward (from 04-REVIEW.md)
 
-These are flagged in `04-REVIEW.md` as warnings; they are advisory and do not block phase completion. Included here for the record.
+**WR-01 (Advisory, ConfigWindow):** OnOpen no longer resets `isDirty = false`. Plan invariant ("`isDirty == true` on OnOpen entry implies a Dalamud spurious re-fire") is not enforced if the user dismisses the unsaved-changes modal via the modal's built-in X / ESC. No user-visible defect today; advisory only. Still open after 04-07; consider tightening in Phase 5 if session-store invariants require strict bought-before-listed semantics.
 
-**WR-01 (Advisory):** `ConfigWindow.OnOpen` does not explicitly reset `isDirty = false` on entry. The plan's invariant ("`isDirty == true` on OnOpen entry implies a Dalamud spurious re-fire") holds for all documented paths (Save clears dirty, Discard clears dirty, Cancel keeps window open without OnClose). An edge case exists if the user dismisses the unsaved-changes modal via its built-in X or ESC — those are not Save/Discard/Cancel paths, so dirty state survives. No user-visible defect today; the window stays open with a valid snapshot. Fragility if future code opens the window while dirty through a new path.
+**WR-02 (closed by 04-07):** `buttonSpacing = 8f` constant drift under Dalamud UI scaling. **CLOSED** — 04-07 replaced the constant with `ImGui.GetStyle().ItemSpacing.X` runtime read. The 04-VERIFICATION (round 1) downgraded WR-02 to advisory; the 1.0.26.0 UAT proved that downgrade wrong, and the 04-07 plan re-promotes the lesson: do not dismiss runtime-style mismatch findings without explicit non-1.0-UI-scale verification.
 
-**WR-02 (Advisory):** `buttonSpacing = 8f` constant in `DailyRouteWindow.DrawProgressSection` is hardcoded rather than read from `ImGui.GetStyle().ItemSpacing.X`. Under Dalamud UI scale != 1.0, the actual gap differs from 8px by a small amount. Cosmetic drift only; buttons remain in the content region at all practical scales.
+**WR-03 (Advisory, semantic):** Listed checkbox is independent of bought state — a user can mark an item listed without first marking it bought, including on OOS items. Profit tally counts any listed item. Acceptable today (listing from pre-existing stockpile is a valid workflow); revisit in Phase 5 if SESS-01 introduces bought-before-listed invariants.
 
-**WR-03 (Advisory):** Listed checkbox is semantically independent of the bought checkbox — a user can mark an item as listed without marking it bought (including OOS items). The profit tally counts any listed item. This may be intentional (listing from pre-existing stock). No correctness defect under current specs; worth addressing if Phase 5 adds session semantics that require bought-before-listed invariants.
+### Phase Boundary Compliance
 
-### Human Verification Required
+| Constraint | Expected | Actual | Status |
+|------------|----------|--------|--------|
+| `NamazuFlippers/Core/RouteStop.cs` byte-unchanged across phase 04 | No phase-04 commits in log | Last commit: 249237f (03-02 add route optimizer) | PASS |
+| `NamazuFlippers/Core/RouteOptimizer.cs` byte-unchanged | No phase-04 commits | Last commits: 03-02 series only | PASS |
+| `NamazuFlippers/Core/ScanEngine.cs` byte-unchanged | No phase-04 commits | Last commits: 2db776d / 0ba88eb / d4fb4a8 / 537ca72 / a60a19b — all phase 03 | PASS |
+| `tests/phase03_nyquist.sh` baseline preserved | Pre-existing 2 SCAN-01 failures unchanged; no new failures introduced | Exit 1, 2 failures (normalizer wrapper shapes, Where(IsUsable) filter) — both documented in 04-04-SUMMARY and 04-05-SUMMARY as pre-existing baseline | PASS |
+| `tests/phase03_nyquist.sh` strictly byte-unchanged | (Stricter reading of user constraint) | Modified ONCE in commit cdeb1d8 (04-01) — single line: `isVisible = !isVisible` → `dailyRouteWindow.IsOpen = !dailyRouteWindow.IsOpen` to keep the "bare command still toggles UI" assertion synced with the windowSystem refactor | PASS_WITH_NOTES (deliberate; documented in 04-01-SUMMARY.md "Phase 03 Nyquist Update") |
+| Local `dotnet build` not attempted | Per PROJECT.md / STATE.md, macOS local build is not the gate | Not attempted; nyquist-only validation per build verification policy | PASS |
 
-None. The UAT ran, gaps were closed at the source level, and this re-verification confirms the gap-closure code is present and correctly wired. All runtime behavior items from the original UAT have been addressed:
+The single phase03_nyquist.sh edit in 04-01 is mechanical (renaming a referenced symbol the assertion was checking against). It does not change what the assertion validates — it keeps the same SCAN-04 invariant ("bare command still toggles UI") aligned with the new entry-point method. This was disclosed in 04-01-SUMMARY.md and is the only deviation from a strict byte-for-byte reading of the constraint.
 
-- UAT Test 1 (profit tally zero): closed by 04-04 — isHomeStop gate removed, listed-checkbox renders on every row
-- UAT Test 2 (auto-collapse): passed in original UAT, confirmed no regression
-- UAT Test 3 (Settings button missing, Rescan clipped, Discard broken): all three sub-gaps closed by 04-05 and 04-06
-- UAT Test 4 (Reset modal, HomeWorld preservation): passed in original UAT, confirmed no regression
-- UAT Test 5 (Rescan disabled state, state wipe): passed in original UAT, confirmed no regression
+### Human Verification Required (post-merge in-game UAT on build > 1.0.26.0)
+
+The local source-validation gate cannot exercise either of the 04-07 fixes — both manifest only at runtime under specific conditions (non-1.0 UI scale, variable-width row content). The user's stated ship-level gate is in-game UAT on the next CI build. Two items pending:
+
+#### 1. Listed checkbox column alignment (closes GAP-D2)
+
+- **Test:** Open DailyRouteWindow with today's scan loaded on a build > 1.0.26.0. Visually inspect the Listed checkbox column across multiple rows with varying name lengths, OOS / Vendor badges, and price digit counts. Toggle one or more Listed checkboxes and observe profit-tally update.
+- **Expected:** All Listed checkboxes line up in the same X column regardless of preceding row content; the GilGold profit tally still updates as items are checked / unchecked.
+- **Why human:** Visual column alignment can only be verified at render time. Source grep confirms the `SameLine(listedAnchorX)` anchor and the `listedAnchorX = GetWindowContentRegionMax().X - 150f` arithmetic; only an in-game render confirms the column lands consistently in the actual content region.
+
+#### 2. Rescan Route button visible at non-1.0 UI scale (closes GAP-D1)
+
+- **Test:** On a build > 1.0.26.0 with the user's reported FFXIV UI scale (1.5x suspected), open DailyRouteWindow at default 420px width. Observe Settings and Rescan Route buttons in the progress section.
+- **Expected:** Both buttons render fully inside the right edge of the window's content region, with no clipping. Click Rescan Route — disabled state engages while ScanInProgress, then re-enables.
+- **Why human:** The bug only manifests at non-1.0 UI scale; local source-validation cannot exercise Dalamud's runtime UI-scale multiplier. The 04-07 fix replaces the hardcoded 8 px gap with `ImGui.GetStyle().ItemSpacing.X` so the reservation tracks the actual SameLine() gap, but only an in-game render at the user's scale confirms the math.
 
 ### Gaps Summary
 
-No blocking gaps. All 8 roadmap success criteria are verified in code. The three UAT-reported gaps are closed at the source level by plans 04-04, 04-05, and 04-06. The nyquist gate confirms the fixes with regression assertions. No human verification items remain.
+No source-level gaps. All 8 roadmap success criteria are present and correctly wired. The local source-validation gate (`tests/phase04_nyquist.sh`) passes 56/56. All UAT-driven regression assertions from 04-04, 04-06, and 04-07 are present and pass. Phase 3 deliverables are unchanged. Two items require in-game UAT on the next CI build — these are NOT source-level gaps; they are runtime behaviors the local gate cannot exercise.
+
+### Notes for Phase 5 (session-store) readiness
+
+- The bought / listed dictionaries (`Dictionary<int, bool>` keyed by `ItemId`) are the surface Phase 5 will persist to JSON. The current in-memory contract: dicts wipe on result reference change (D-09); survive window close + re-open within the same session (D-11). Phase 5 lifts this same contract to disk.
+- The `if (!isDirty)` snapshot guard in `ConfigWindow.OnOpen` is independent of session state and will not interact with Phase 5 changes.
+- The 04-07 layout fixes (runtime ItemSpacing, listedAnchorX) are independent of any persistence layer; Phase 5 should not perturb them.
 
 ---
 
-_Verified: 2026-05-08T00:00:00Z_
-_Verifier: Claude (gsd-verifier)_
+_Verified: 2026-05-08T05:30:40Z_
+_Verifier: Claude (gsd-verifier, goal-backward re-verification round 2)_
+_Phase 4 source-level: PASS_WITH_NOTES_
+_Phase 4 in-game ship gate: pending UAT on CI build > 1.0.26.0_

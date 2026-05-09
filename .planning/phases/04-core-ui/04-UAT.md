@@ -1,16 +1,92 @@
 ---
 status: diagnosed
 phase: 04-core-ui
-source: [04-04-SUMMARY.md, 04-05-SUMMARY.md, 04-06-SUMMARY.md]
+source: [04-04-SUMMARY.md, 04-05-SUMMARY.md, 04-06-SUMMARY.md, 04-07-SUMMARY.md]
 scope: gap-closure-behavioral-verification
 started: 2026-05-08T03:12:12Z
-updated: 2026-05-08T03:45:00Z
-build_tested: 1.0.26.0
+updated: 2026-05-08T05:45:00Z
+round: 2
+build_tested: ">1.0.26.0 (post-04-07)"
 ---
 
 ## Current Test
 
-[testing complete]
+[round 2 testing complete]
+
+## Round 2 Tests (post-04-07, build > 1.0.26.0)
+
+### 1. Rescan Route visible at user's FFXIV UI scale (re-verify GAP-D1)
+expected: Both Settings and Rescan Route fully visible, neither clipped at the right edge, at the user's actual FFXIV UI scale.
+fixed_by: 04-07
+result: issue
+gap_d1_closed: false
+reported: "The rescan route button is still cut off. I get to Rescan Rou before it's cut off. everything else works."
+severity: major
+build_tested: ">1.0.26.0 (post-04-07)"
+new_gap: GAP-E1
+
+### 2. Listed checkbox column alignment (re-verify GAP-D2)
+expected: Listed checkboxes align in a consistent column down the right side of the items list across all rows.
+fixed_by: 04-07
+result: pass
+gap_d2_closed: true
+reported: "the checkboxes for bought align nicely and look good. all other features work properly"
+build_tested: ">1.0.26.0 (post-04-07)"
+
+## Closures Confirmed (round 2)
+
+- GAP-D2 (Listed checkbox column alignment) → CLOSED in build > 1.0.26.0
+
+## Closures NOT Confirmed (round 2)
+
+- GAP-D1 (Rescan button visible at non-1.0 UI scale) → STILL FAILS in build > 1.0.26.0
+  - 04-07's `ImGui.GetStyle().ItemSpacing.X` runtime read was a real fix but addressed a non-user-visible mechanism. The user-visible mechanism is different — see GAP-E1 below.
+
+## Gaps (Round 2)
+
+- truth: "Rescan Route button renders fully within DailyRouteWindow content region at all FFXIV UI scales"
+  status: diagnosed
+  id: GAP-E1
+  supersedes: GAP-D1
+  reason: "User reported on build > 1.0.26.0 (post-04-07): 'The rescan route button is still cut off. I get to Rescan Rou before it's cut off.' The button frame extends past the window's right edge — text inside is rendered, but the rightmost ~13px of the 110px frame is clipped by the window."
+  severity: major
+  test: 1
+  root_cause: |
+    DailyRouteWindow.cs:120 renders `ImGui.Text($"Bought: ... Listed: ...")` BEFORE the
+    `ImGui.SameLine()` on line 121. The subsequent
+    `avail = ImGui.GetContentRegionAvail().X` on line 129 measures the REMAINING space
+    on that row after the bought/listed text — not the full content width.
+
+    At FFXIV UI scale 1.5:
+      • Window content ≈ 396px (420 minus scaled WindowPadding)
+      • "Bought: 0/40   Listed: 0/40" text at scaled font ≈ 195px
+      • avail (remaining) ≈ 189px
+      • combinedWidth = 110 + 12 + 80 = 202px
+      • avail (189) < combinedWidth (202) → guard `avail > combinedWidth` fails
+      • cursor is NOT advanced; buttons render starting at current cursor X (≈ 207)
+      • Settings (80px) ends at ≈ 287; Rescan (110px) ends at ≈ 409
+      • Window content ends at 396 → rightmost 13px of Rescan clipped
+      • User sees "Rescan Rou" then clipping (10/12 chars of "Rescan Route" before the cut)
+
+    04-07's `buttonSpacing = ImGui.GetStyle().ItemSpacing.X` runtime read was a
+    real correctness fix (the constant 8f was wrong) but the user-visible bug is
+    not in `buttonSpacing` — it is that `avail` is measured on a partially-consumed
+    row, AND the literal-pixel button widths (110/80) don't scale with the font.
+  artifacts:
+    - path: "NamazuFlippers/UI/DailyRouteWindow.cs"
+      issue: "Lines 120-144: Settings/Rescan buttons share a row with the bought/listed text. At scaled UI, that row's remaining space is too small for the 110+12+80 reservation, AND the button widths themselves are literal pixels that don't scale, so 'Rescan Route' wouldn't fit inside a 110px frame at scale 1.5+ even if the row had room."
+  missing:
+    - "Move Settings + Rescan buttons to their OWN row by removing the `ImGui.SameLine()` after the bought/listed Text. avail then equals the full content region width."
+    - "Scale the button widths by `ImGuiHelpers.GlobalScale` (Dalamud helper) so the button frames grow with FFXIV UI scale and 'Rescan Route' fits inside the frame at scale > 1.0."
+    - "Update phase04_nyquist.sh to require both: (a) no `ImGui.SameLine()` immediately preceding the buttonSpacing block (the buttons must be on a new row), and (b) `ImGuiHelpers.GlobalScale` multiplied into rescanWidth/settingsWidth."
+  debug_session: .planning/debug/rescan-button-still-cut-off-2.md
+
+## Summary (round 2)
+
+total: 2
+passed: 1
+issues: 1
+pending: 0
 
 ## Tests
 
