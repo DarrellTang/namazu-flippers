@@ -38,7 +38,7 @@
 
 ### Core UI
 
-- [x] **UI-01**: DailyRouteWindow displays today's route: server stops in order, items to buy per stop with prices [^ui01-gap-e1]
+- [x] **UI-01**: DailyRouteWindow displays today's route: server stops in order, items to buy per stop with prices
 - [x] **UI-02**: Each item has a checkbox to mark "bought" at the purchase server
 - [x] **UI-03**: Home stop section shows items to list with "listed" checkboxes
 - [x] **UI-04**: Running profit tally updates as items are marked listed
@@ -104,7 +104,7 @@
 | SCAN-02 | Phase 3 | Complete |
 | SCAN-03 | Phase 3 | Complete |
 | SCAN-04 | Phase 3 | Complete |
-| UI-01 | Phase 4 | Complete (source-level; GAP-E1 closure pending UAT round 3 on next CI build >1.0.26.0) |
+| UI-01 | Phase 4 | Complete |
 | UI-02 | Phase 4 | Complete |
 | UI-03 | Phase 4 | Complete |
 | UI-04 | Phase 4 | Complete |
@@ -128,8 +128,6 @@
 - v2 requirements: 5 total
 - Total: 35
 
-[^ui01-gap-e1]: UI-01 source-level criteria are met; UAT round 2 (build >1.0.26.0) flagged GAP-E1 (Rescan Route clipping at FFXIV UI scale > 1.0). Plan 04-08 closes GAP-E1 at the source level (Settings/Rescan render on their own row + GlobalScale-scaled widths). Final UI-01 status pending UAT round 3 on the next post-merge CI build.
-
 ---
 *Requirements defined: 2026-05-04*
-*Last updated: 2026-05-08 after 04-08 (GAP-E1 footnote on UI-01)*
+*Last updated: 2026-05-09 — Phase 04 closed including post-04-08 UAT hotfixes: GAP-F1 (Listed column scaling), GAP-F2 (cumulative MaxBudgetPerSession), sale_rates per-hour→per-day fix, inline velocity label, RouteStops counter aggregation. UI-01 confirmed in build 1.0.32.0.*

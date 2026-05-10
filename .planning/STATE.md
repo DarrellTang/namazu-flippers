@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: ready_to_plan
-stopped_at: Completed 04-08-PLAN.md (Phase 4 gap-closure for GAP-E1, supersedes GAP-D1)
-last_updated: "2026-05-08T05:34:00Z"
-last_activity: 2026-05-08 -- Phase 04 plan 04-08 complete (Rescan own-row + GlobalScale, GAP-E1)
+stopped_at: Phase 04 fully closed (build 1.0.32.0); ready to plan Phase 05 (Session Persistence)
+last_updated: "2026-05-09T23:30:00Z"
+last_activity: 2026-05-09 -- Phase 04 closed including post-04-08 UAT hotfixes (sale_rates per-hour fix, GAP-F1 column scaling, GAP-F2 cumulative budget, velocity label, RouteStops counter regression)
 progress:
   total_phases: 7
   completed_phases: 4
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-07)
 
 **Core value:** A single button gives you today's best arbitrage route. Follow it, buy, list, done in under 20 minutes. Every day.
-**Current focus:** Phase 04 — core-ui
+**Current focus:** Phase 05 — session-persistence (ready to plan)
 **Build model:** macOS local builds are not expected to compile without Dalamud SDK assemblies; use source validation locally and GitHub Actions as the authoritative compiler/package gate.
 
 ## Current Position
 
-Phase: 04 (core-ui) — COMPLETE (9/9 plans, all gap-closures landed; UAT round 3 pending on post-merge CI build)
-Plan: 04-08 complete (Rescan own-row + GlobalScale-scaled widths, GAP-E1 — supersedes GAP-D1's user-visible mechanism)
+Phase: 04 (core-ui) — COMPLETE and confirmed in build 1.0.32.0
+Plan: All 9 phase-04 plans + 5 post-04 UAT-driven hotfixes shipped
 Next: 05 — Session Persistence (ready to plan)
-Status: Ready to plan Phase 05; UI-01 footnoted as "GAP-E1 closure pending UAT round 3 on next CI build" in REQUIREMENTS.md
-Last activity: 2026-05-08 -- Phase 04 plan 04-08 complete
+Status: Ready to plan Phase 05
+Last activity: 2026-05-09 -- Phase 04 fully verified in-game (build 1.0.32.0)
 
 Progress: [██████████] 100%
 
