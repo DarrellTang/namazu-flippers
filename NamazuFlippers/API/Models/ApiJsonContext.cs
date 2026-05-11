@@ -25,6 +25,8 @@ namespace NamazuFlippers.API.Models;
 [JsonSerializable(typeof(RouteStop))]
 [JsonSerializable(typeof(ScanEngineResult))]
 [JsonSerializable(typeof(ScanCacheEnvelope))]
+[JsonSerializable(typeof(SessionState))]
+[JsonSerializable(typeof(Dictionary<int, bool>))]
 [JsonSerializable(typeof(List<RankedOpportunity>))]
 [JsonSerializable(typeof(List<RouteStop>))]
 internal sealed partial class ApiJsonContext : JsonSerializerContext

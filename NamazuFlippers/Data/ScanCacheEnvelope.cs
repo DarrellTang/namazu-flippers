@@ -5,7 +5,7 @@ namespace NamazuFlippers.Data;
 
 public sealed class ScanCacheEnvelope
 {
-    public const int CurrentSchemaVersion = 1;
+    public const int CurrentSchemaVersion = 2;
 
     public int SchemaVersion { get; set; } = CurrentSchemaVersion;
 
@@ -18,4 +18,6 @@ public sealed class ScanCacheEnvelope
     public ScanResponse RawResponse { get; set; } = new();
 
     public ScanEngineResult DerivedResult { get; set; } = new();
+
+    public SessionState SessionState { get; set; } = new();
 }
