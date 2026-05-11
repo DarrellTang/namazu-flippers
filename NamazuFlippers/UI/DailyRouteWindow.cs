@@ -66,12 +66,22 @@ public class DailyRouteWindow : Window
         if (result == null || result.Status == ScanEngineStatus.Empty || result.Status == ScanEngineStatus.Error)
             return;
 
-        // Detect result-change to wipe state (D-09) — wave 2 acts on this; wave 1 just tracks last seen.
+        // Detect result-change to wipe state (Phase 4 D-09) and hydrate from persisted session
+        // (Phase 5 D-08). Rescan envelopes have empty SessionState by construction, so hydrating
+        // from them is the wipe; cache-hit envelopes carry the previously-persisted clicks.
         if (!ReferenceEquals(result, lastSeenResult))
         {
             boughtState.Clear();
             listedState.Clear();
             autoCollapsedStops.Clear();
+
+            var session = plugin.CurrentSessionState;
+            if (session != null)
+            {
+                foreach (var kv in session.Bought) boughtState[kv.Key] = kv.Value;
+                foreach (var kv in session.Listed) listedState[kv.Key] = kv.Value;
+            }
+
             lastSeenResult = result;
         }
 
@@ -123,6 +133,23 @@ public class DailyRouteWindow : Window
             .Sum(o => o.ExpectedDailyProfit);
 
         ImGui.Text($"Bought: {boughtCount}/{totalItems}   Listed: {listedCount}/{totalItems}");
+
+        // Phase 5 D-10/D-11/D-13: Whole-route bulk-action row, placed AFTER the bought/listed
+        // counter Text and BEFORE the Settings/Rescan row so it doesn't fight the GAP-E1 right-edge
+        // pixel budget. Bought first, Listed second — left-to-right alignment with the counter row
+        // directly above. Both buttons always enabled (D-13). No confirmation modal (D-12: each
+        // individual checkbox is reversible).
+        if (ImGui.Button("Mark All Bought"))
+        {
+            foreach (var item in routeItems) boughtState[item.ItemId] = true;
+            plugin.QueueSessionSave(boughtState, listedState);
+        }
+        ImGui.SameLine();
+        if (ImGui.Button("Mark All Listed"))
+        {
+            foreach (var item in routeItems) listedState[item.ItemId] = true;
+            plugin.QueueSessionSave(boughtState, listedState);
+        }
 
         // GAP-E1 (04-08): buttons on their OWN row (no SameLine after the Text) so
         // avail = ImGui.GetContentRegionAvail().X measures the full content region
@@ -226,7 +253,10 @@ public class DailyRouteWindow : Window
             {
                 var bought = boughtState.GetValueOrDefault(item.ItemId);
                 if (ImGui.Checkbox($"##bought-{item.ItemId}", ref bought))
+                {
                     boughtState[item.ItemId] = bought;
+                    plugin.QueueSessionSave(boughtState, listedState);
+                }
 
                 ImGui.SameLine();
 
@@ -295,7 +325,10 @@ public class DailyRouteWindow : Window
                     ImGui.SameLine();
                 var listed = listedState.GetValueOrDefault(item.ItemId);
                 if (ImGui.Checkbox($"##listed-{item.ItemId}", ref listed))
+                {
                     listedState[item.ItemId] = listed;
+                    plugin.QueueSessionSave(boughtState, listedState);
+                }
                 ImGui.SameLine();
                 ImGui.TextColored(GilGold, $"List: {item.HomePrice:n0}");
             }

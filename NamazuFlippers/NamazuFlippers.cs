@@ -25,6 +25,7 @@ public class NamazuFlippers : IDalamudPlugin
     private readonly RateLimiter rateLimiter;
     private readonly SaddlebagClient apiClient;
     private readonly ScanEngine scanEngine;
+    private readonly ScanCacheStore cacheStore;
     private readonly CancellationTokenSource scanCts = new();
 
     private readonly WindowSystem windowSystem = new("NamazuFlippers");
@@ -41,6 +42,14 @@ public class NamazuFlippers : IDalamudPlugin
 
     public ScanEngineResult? LatestScanResult { get; private set; }
 
+    /// <summary>
+    /// Latest SessionState read from the persisted scan-cache.json envelope.
+    /// Populated after every scan (cache hit or API call) so DailyRouteWindow can
+    /// hydrate its in-memory bought/listed dictionaries on first sight of a new
+    /// ScanEngineResult (Phase 5 D-08). Null until the first scan completes.
+    /// </summary>
+    public SessionState? CurrentSessionState { get; private set; }
+
     public Configuration Configuration { get; set; }
 
     /// <summary>True while a scan is currently running. Used by DailyRouteWindow to disable Rescan.</summary>
@@ -51,6 +60,32 @@ public class NamazuFlippers : IDalamudPlugin
 
     /// <summary>Opens the ConfigWindow. Called by DailyRouteWindow's in-window Settings button (D-07).</summary>
     public void OpenConfigWindow() => configWindow.IsOpen = true;
+
+    /// <summary>
+    /// Queue a fire-and-forget save of the current bought/listed dictionaries to disk.
+    /// Called from DailyRouteWindow checkbox handlers and Mark All buttons (D-04, D-05).
+    /// </summary>
+    public void QueueSessionSave(Dictionary<int, bool> bought, Dictionary<int, bool> listed)
+    {
+        // Snapshot the dictionaries off the UI thread so the background save sees a stable view.
+        var snapshot = new SessionState
+        {
+            Bought = new Dictionary<int, bool>(bought),
+            Listed = new Dictionary<int, bool>(listed),
+        };
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await cacheStore.SaveSessionAsync(snapshot, scanCts.Token);
+            }
+            catch (OperationCanceledException)
+            {
+                // Plugin shutdown raced the save — fine, drop it.
+            }
+        }, scanCts.Token);
+    }
 
     public NamazuFlippers(
         IDalamudPluginInterface pluginInterface,
@@ -68,7 +103,7 @@ public class NamazuFlippers : IDalamudPlugin
         rateLimiter = new RateLimiter(TimeSpan.FromMilliseconds(1000));
         apiClient = new SaddlebagClient(Configuration, log, rateLimiter);
         var routeOptimizer = new RouteOptimizer();
-        var cacheStore = new ScanCacheStore(pluginInterface, Configuration, log);
+        cacheStore = new ScanCacheStore(pluginInterface, Configuration, log);
         scanEngine = new ScanEngine(apiClient, Configuration, log, routeOptimizer, cacheStore);
 
         firstRunWindow = new FirstRunWindow(Configuration, pluginInterface, log);
@@ -176,6 +211,13 @@ public class NamazuFlippers : IDalamudPlugin
             var result = await scanEngine.GetRouteAsync(forceRefresh, ct);
             LatestScanResult = result;
             LastApiError = result.Status == ScanEngineStatus.Error ? result.UserMessage : null;
+
+            // Phase 5 D-08: After every scan (cache hit OR API call), read the just-loaded/just-written
+            // envelope back so DailyRouteWindow can hydrate its in-memory bought/listed dictionaries.
+            // On a fresh API scan the envelope's SessionState is empty (clean slate); on a cache hit
+            // the envelope's SessionState carries the previously-persisted clicks.
+            var envelope = await cacheStore.LoadAnyAsync(ct);
+            CurrentSessionState = envelope?.SessionState;
 
             log.Information(
                 "/nflip: scan {Status}; {Stops} stops, {Items} items, {Profit:n0} expected daily profit.",

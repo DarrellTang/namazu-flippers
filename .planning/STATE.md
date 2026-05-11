@@ -4,8 +4,8 @@ milestone: v1.0
 milestone_name: milestone
 status: executing
 stopped_at: Phase 5 context gathered
-last_updated: "2026-05-10T06:37:42.316Z"
-last_activity: 2026-05-10 -- Phase 05 planning complete
+last_updated: "2026-05-11T21:30:17.621Z"
+last_activity: 2026-05-11 -- Phase 05 execution started
 progress:
   total_phases: 7
   completed_phases: 4
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-07)
 
 **Core value:** A single button gives you today's best arbitrage route. Follow it, buy, list, done in under 20 minutes. Every day.
-**Current focus:** Phase 05 — session-persistence (ready to plan)
+**Current focus:** Phase 05 — session-persistence
 **Build model:** macOS local builds are not expected to compile without Dalamud SDK assemblies; use source validation locally and GitHub Actions as the authoritative compiler/package gate.
 
 ## Current Position
 
-Phase: 04 (core-ui) — COMPLETE and confirmed in build 1.0.32.0
-Plan: All 9 phase-04 plans + 5 post-04 UAT-driven hotfixes shipped
+Phase: 05 (session-persistence) — EXECUTING
+Plan: 1 of 1
 Next: 05 — Session Persistence (ready to plan)
-Status: Ready to execute
-Last activity: 2026-05-10 -- Phase 05 planning complete
+Status: Executing Phase 05
+Last activity: 2026-05-11 -- Phase 05 execution started
 
 Progress: [██████████] 100%
 
