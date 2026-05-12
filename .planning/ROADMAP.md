@@ -100,7 +100,7 @@ Plans:
 **Plans**: 1 plan
 
 Plans:
-- [ ] 05-01-PLAN.md — Bundle SessionState POCO, schema v2 envelope, SaveSessionAsync, hydrate-on-load, save-on-toggle, Mark All row, phase05_nyquist.sh (SESS-01, SESS-02, SESS-03)
+- [x] 05-01-PLAN.md — Bundle SessionState POCO, schema v2 envelope, SaveSessionAsync, hydrate-on-load, save-on-toggle, Mark All row, phase05_nyquist.sh (SESS-01, SESS-02, SESS-03)
 
 ### Phase 6: Optional Features
 **Goal**: Shortage predictor supplement and basic game integration hooks
