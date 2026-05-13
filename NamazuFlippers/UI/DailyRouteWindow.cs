@@ -90,6 +90,10 @@ public class DailyRouteWindow : Window
 
         switch (result.Status)
         {
+            case ScanEngineStatus.Success:
+                ImGui.TextColored(SuccessGreen,
+                    $"Fresh scan from {result.CreatedAtUtc.ToLocalTime():HH:mm}.");
+                break;
             case ScanEngineStatus.UsingCache:
                 ImGui.TextColored(CacheBlue,
                     $"Using cached route from {result.CreatedAtUtc.ToLocalTime():HH:mm}. /nflip scan to refresh.");
@@ -103,7 +107,6 @@ public class DailyRouteWindow : Window
             case ScanEngineStatus.Error:
                 ImGui.TextColored(ErrorRed, result.UserMessage);
                 break;
-            // Success: no banner.
         }
     }
 
