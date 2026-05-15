@@ -185,6 +185,10 @@ public sealed class ScanEngine
         };
     }
 
+    // Local hard filters for MinProfitAmount and PreferredRoi: Saddlebag's API treats both
+    // as soft preferences for OOS items, and uses home_server_price for its calc while we
+    // use the more conservative min(home_server_price, avg_ppu). Re-applying locally on
+    // ProfitPerUnit / RoiPercent guarantees the user-visible numbers honor the configured floor.
     private static bool IsUsable(ScanItem item, Configuration config) =>
         item.ItemId > 0 &&
         !string.IsNullOrWhiteSpace(item.Name) &&
@@ -192,6 +196,8 @@ public sealed class ScanEngine
         item.HomePrice > 0 &&
         item.CheapestPrice > 0 &&
         item.ExpectedDailyProfit > 0 &&
+        item.ProfitPerUnit >= config.MinProfitAmount &&
+        item.RoiPercent >= config.PreferredRoi &&
         item.SalesPerDay >= Math.Max(config.MinSalesPerDay, double.Epsilon);
 
     private static RankedOpportunity ToOpportunity(ScanItem item) => new()

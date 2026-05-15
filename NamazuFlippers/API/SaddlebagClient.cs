@@ -151,8 +151,11 @@ public sealed class SaddlebagClient
         return clone;
     }
 
-    // home_server_price uses 999_999_999 as a sentinel for out-of-stock items.
-    private const int OutOfStockSentinel = 900_000_000;
+    // OOS marker: empirically verified via direct /api/scan probes (2026-05-15) that Saddlebag
+    // returns home_server_price == 0 (NOT a 999M sentinel as previously assumed) for items
+    // with no current home-server listings. The earlier "OutOfStockSentinel = 900_000_000"
+    // never matched anything, so OOS items were silently dropped by IsUsable's HomePrice > 0
+    // check despite the user enabling "Include out-of-stock items".
 
     private static ScanResponse NormalizeScanResponse(string body, int statusCode)
     {
@@ -190,24 +193,33 @@ public sealed class SaddlebagClient
         double.TryParse(raw.SaleRates, NumberStyles.Float, CultureInfo.InvariantCulture, out var salesPerHour);
         var salesPerDay = salesPerHour * 24;
 
-        var isOutOfStock = raw.HomeServerPrice >= OutOfStockSentinel;
+        var isOutOfStock = raw.HomeServerPrice <= 0;
 
         // Expected sell price: lower of current home listing and historical average.
         // home_server_price is just the cheapest current listing — when it's far above
         // avg_ppu, someone listed unrealistically high and you'd be undercut before
         // selling. avg_ppu is what the item actually clears at.
         // For OOS items, only avg_ppu is available.
+        // Note: Saddlebag's /api/scan applies its min_profit_amount and preferred_roi
+        // filters using home_server_price directly; our conservative min(home, avg)
+        // can produce a smaller per-unit profit. ScanEngine.IsUsable re-applies both
+        // thresholds locally so the user-visible profit/ROI honors the configured floor.
         var expectedSellPrice = isOutOfStock
             ? raw.AvgPpu
             : Math.Min(raw.HomeServerPrice, raw.AvgPpu);
 
         var sellNet = (long)Math.Floor(expectedSellPrice * MarketTaxRate);
-        var profitPerUnit = sellNet - raw.Ppu;
+        var profitPerUnitLong = sellNet - raw.Ppu;
+        var profitPerUnit = profitPerUnitLong >= int.MaxValue
+            ? int.MaxValue
+            : profitPerUnitLong <= int.MinValue ? int.MinValue : (int)profitPerUnitLong;
+
+        var roiPercent = raw.Ppu > 0 ? (profitPerUnitLong / (double)raw.Ppu) * 100.0 : 0.0;
 
         var expectedDailyProfit = 0;
-        if (profitPerUnit > 0 && salesPerDay > 0)
+        if (profitPerUnitLong > 0 && salesPerDay > 0)
         {
-            var product = profitPerUnit * salesPerDay;
+            var product = profitPerUnitLong * salesPerDay;
             expectedDailyProfit = product >= int.MaxValue ? int.MaxValue : (int)product;
         }
 
@@ -220,6 +232,8 @@ public sealed class SaddlebagClient
             CheapestPrice = raw.Ppu,
             SalesPerDay = salesPerDay,
             ExpectedDailyProfit = expectedDailyProfit,
+            ProfitPerUnit = profitPerUnit,
+            RoiPercent = roiPercent,
             OutOfStock = isOutOfStock,
         };
     }
