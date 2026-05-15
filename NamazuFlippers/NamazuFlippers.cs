@@ -88,8 +88,11 @@ public class NamazuFlippers : IDalamudPlugin
             HelpMessage = "Toggle the Namazu Flippers daily arbitrage route window. Use /nflip scan to refresh the route."
         });
 
+        TaskScheduler.UnobservedTaskException += OnUnobservedTaskException;
+        AppDomain.CurrentDomain.UnhandledException += OnUnhandledException;
+
         clientState.Login += OnLogin;
-        pluginInterface.UiBuilder.Draw += windowSystem.Draw;
+        pluginInterface.UiBuilder.Draw += DrawWithDiagnostics;
         pluginInterface.UiBuilder.OpenConfigUi += OnOpenConfigUi;
 
         if (clientState.IsLoggedIn)
@@ -100,10 +103,13 @@ public class NamazuFlippers : IDalamudPlugin
 
     public void Dispose()
     {
+        log.Information("Namazu Flippers Dispose starting.");
+        TaskScheduler.UnobservedTaskException -= OnUnobservedTaskException;
+        AppDomain.CurrentDomain.UnhandledException -= OnUnhandledException;
         clientState.Login -= OnLogin;
         scanCts.Cancel();
         scanCts.Dispose();
-        pluginInterface.UiBuilder.Draw -= windowSystem.Draw;
+        pluginInterface.UiBuilder.Draw -= DrawWithDiagnostics;
         pluginInterface.UiBuilder.OpenConfigUi -= OnOpenConfigUi;
         windowSystem.RemoveAllWindows();
         commandManager.RemoveHandler(CommandName);
@@ -188,9 +194,49 @@ public class NamazuFlippers : IDalamudPlugin
         {
             log.Information("/nflip: scan cancelled.");
         }
+        catch (Exception ex)
+        {
+            log.Error(ex, "/nflip: scan failed with unexpected exception.");
+        }
         finally
         {
             Interlocked.Exchange(ref scanInProgress, 0);
         }
+    }
+
+    private DateTime lastDrawHeartbeat = DateTime.MinValue;
+    private static readonly TimeSpan DrawHeartbeatInterval = TimeSpan.FromSeconds(60);
+
+    private void DrawWithDiagnostics()
+    {
+        try
+        {
+            var now = DateTime.UtcNow;
+            if (now - lastDrawHeartbeat >= DrawHeartbeatInterval)
+            {
+                log.Information("/nflip: Draw heartbeat (tid={Tid}).", Environment.CurrentManagedThreadId);
+                lastDrawHeartbeat = now;
+            }
+            windowSystem.Draw();
+        }
+        catch (Exception ex)
+        {
+            log.Error(ex, "/nflip: exception in Draw — rethrowing to Dalamud.");
+            throw;
+        }
+    }
+
+    private void OnUnobservedTaskException(object? sender, UnobservedTaskExceptionEventArgs e)
+    {
+        log.Error(e.Exception, "/nflip: unobserved task exception.");
+        e.SetObserved();
+    }
+
+    private void OnUnhandledException(object? sender, UnhandledExceptionEventArgs e)
+    {
+        if (e.ExceptionObject is Exception ex)
+            log.Error(ex, "/nflip: AppDomain unhandled exception (terminating={Terminating}).", e.IsTerminating);
+        else
+            log.Error("/nflip: AppDomain unhandled non-Exception (terminating={Terminating}).", e.IsTerminating);
     }
 }
