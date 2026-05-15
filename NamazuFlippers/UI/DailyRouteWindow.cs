@@ -175,23 +175,27 @@ public class DailyRouteWindow : Window
 
     private void DrawRouteStop(RouteStop stop, ScanEngineResult result)
     {
-        bool allBought = stop.Items.Count > 0
-            && stop.Items.All(item => boughtState.GetValueOrDefault(item.ItemId));
+        // Stop is "done" once all items are LISTED at home (not just bought).
+        // Bought = visited the source server; Listed = posted on home market board.
+        // Auto-collapsing on bought hides items before the user has actually moved them
+        // to the market, which is the wrong moment.
+        bool allListed = stop.Items.Count > 0
+            && stop.Items.All(item => listedState.GetValueOrDefault(item.ItemId));
 
-        // Auto-collapse on first all-bought frame; reset flag when user un-checks (UI-07, Pitfall 2)
-        if (allBought && !autoCollapsedStops.GetValueOrDefault(stop.PurchaseSource))
+        // Auto-collapse on first all-listed frame; reset flag when user un-checks (UI-07, Pitfall 2)
+        if (allListed && !autoCollapsedStops.GetValueOrDefault(stop.PurchaseSource))
         {
             ImGui.SetNextItemOpen(false, ImGuiCond.Always);
             autoCollapsedStops[stop.PurchaseSource] = true;
         }
-        else if (!allBought)
+        else if (!allListed)
         {
             autoCollapsedStops[stop.PurchaseSource] = false;
         }
 
-        // Header label — checkmark prefix and CompletedGray when all bought
+        // Header label — checkmark prefix and CompletedGray when all listed
         string headerLabel;
-        if (allBought)
+        if (allListed)
         {
             headerLabel = stop.IsVendorStop
                 ? $"✓ Vendor: {stop.PurchaseSource} — {stop.Items.Count} items — {stop.TotalExpectedDailyProfit:n0} gil/day"
@@ -204,10 +208,10 @@ public class DailyRouteWindow : Window
                 : $"{stop.PurchaseSource} ({stop.DataCenter}) — {stop.Items.Count} items — {stop.TotalExpectedDailyProfit:n0} gil/day";
         }
 
-        // Apply header color: CompletedGray when all bought, VendorCyan for vendor stops
-        bool pushColor = allBought || stop.IsVendorStop;
+        // Apply header color: CompletedGray when all listed, VendorCyan for vendor stops
+        bool pushColor = allListed || stop.IsVendorStop;
         if (pushColor)
-            ImGui.PushStyleColor(ImGuiCol.Text, allBought ? CompletedGray : VendorCyan);
+            ImGui.PushStyleColor(ImGuiCol.Text, allListed ? CompletedGray : VendorCyan);
 
         bool open = ImGui.CollapsingHeader(headerLabel);
 
@@ -240,12 +244,23 @@ public class DailyRouteWindow : Window
                 else
                     ImGui.Text(item.Name);
 
-                if (ImGui.IsItemHovered())
+                // Click name to copy to clipboard for pasting into the market board search.
+                // IsItemHovered + IsMouseClicked is robust on plain Text (which has no native
+                // click capture); SetClipboardText routes through Dalamud's clipboard provider.
+                var nameHovered = ImGui.IsItemHovered();
+                if (nameHovered)
+                    ImGui.SetMouseCursor(ImGuiMouseCursor.Hand);
+                if (nameHovered && ImGui.IsMouseClicked(ImGuiMouseButton.Left))
+                    ImGui.SetClipboardText(item.Name);
+
+                if (nameHovered)
                 {
                     ImGui.BeginTooltip();
                     ImGui.Text($"Avg {item.SalesPerDay:F2} sales/day");
                     if (item.SalesPerDay > 0)
                         ImGui.Text($"~{1.0 / item.SalesPerDay:F1} days between sales");
+                    ImGui.Separator();
+                    ImGui.TextDisabled("Click to copy name");
                     ImGui.EndTooltip();
                 }
 
