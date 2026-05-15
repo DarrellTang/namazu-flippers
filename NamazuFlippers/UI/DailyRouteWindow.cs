@@ -36,6 +36,14 @@ public class DailyRouteWindow : Window
     private Dictionary<string, bool> autoCollapsedStops = new();
     private ScanEngineResult? lastSeenResult;
 
+    // FFXIV market board takes 5% in retainer fees on every sale (also defined as
+    // MarketTaxRate in SaddlebagClient — kept here as a literal so the UI calc is
+    // self-contained and works on items loaded from caches that pre-date this change).
+    private const double MarketTaxRate = 0.95;
+
+    private static int ProfitPerSale(RankedOpportunity item) =>
+        (int)(Math.Floor(item.HomePrice * MarketTaxRate) - item.PurchasePrice);
+
     public DailyRouteWindow(NamazuFlippers plugin, IPluginLog log)
         : base("Namazu Flippers — Daily Route", ImGuiWindowFlags.None)
     {
@@ -120,10 +128,13 @@ public class DailyRouteWindow : Window
         var totalItems = routeItems.Count;
         var boughtCount = routeItems.Count(o => boughtState.GetValueOrDefault(o.ItemId));
         var listedCount = routeItems.Count(o => listedState.GetValueOrDefault(o.ItemId));
-        var totalProfit = result?.TotalExpectedDailyProfit ?? 0;
+        // Per-sale profit, not per-day: assumes one buy → one sale per item.
+        // The /day number was misleading because the route deliberately spreads risk
+        // across N items rather than concentrating budget on one fast-mover.
+        var totalProfit = routeItems.Sum(ProfitPerSale);
         var listedProfit = routeItems
             .Where(o => listedState.GetValueOrDefault(o.ItemId))
-            .Sum(o => o.ExpectedDailyProfit);
+            .Sum(ProfitPerSale);
 
         ImGui.Text($"Bought: {boughtCount}/{totalItems}   Listed: {listedCount}/{totalItems}");
 
@@ -193,19 +204,22 @@ public class DailyRouteWindow : Window
             autoCollapsedStops[stop.PurchaseSource] = false;
         }
 
+        // Per-sale total for this stop (one buy/sell per item), not the historical /day rate.
+        var stopProfit = stop.Items.Sum(ProfitPerSale);
+
         // Header label — checkmark prefix and CompletedGray when all listed
         string headerLabel;
         if (allListed)
         {
             headerLabel = stop.IsVendorStop
-                ? $"✓ Vendor: {stop.PurchaseSource} — {stop.Items.Count} items — {stop.TotalExpectedDailyProfit:n0} gil/day"
-                : $"✓ {stop.PurchaseSource} ({stop.DataCenter}) — {stop.Items.Count} items — {stop.TotalExpectedDailyProfit:n0} gil/day";
+                ? $"✓ Vendor: {stop.PurchaseSource} — {stop.Items.Count} items — {stopProfit:n0} gil"
+                : $"✓ {stop.PurchaseSource} ({stop.DataCenter}) — {stop.Items.Count} items — {stopProfit:n0} gil";
         }
         else
         {
             headerLabel = stop.IsVendorStop
-                ? $"Vendor: {stop.PurchaseSource} — {stop.Items.Count} items — {stop.TotalExpectedDailyProfit:n0} gil/day"
-                : $"{stop.PurchaseSource} ({stop.DataCenter}) — {stop.Items.Count} items — {stop.TotalExpectedDailyProfit:n0} gil/day";
+                ? $"Vendor: {stop.PurchaseSource} — {stop.Items.Count} items — {stopProfit:n0} gil"
+                : $"{stop.PurchaseSource} ({stop.DataCenter}) — {stop.Items.Count} items — {stopProfit:n0} gil";
         }
 
         // Apply header color: CompletedGray when all listed, VendorCyan for vendor stops
@@ -278,7 +292,7 @@ public class DailyRouteWindow : Window
                 ImGui.SameLine();
                 ImGui.TextColored(PurchaseCyan, $"Buy: {item.PurchasePrice:n0}");
                 ImGui.SameLine();
-                ImGui.TextColored(GilGold, $"+{item.ExpectedDailyProfit:n0}/day");
+                ImGui.TextColored(GilGold, $"+{ProfitPerSale(item):n0}");
 
                 // Inline velocity hint so the user can judge whether the daily-profit number
                 // comes from many small sales (~fast) or few big sales with a wait (~slow).
