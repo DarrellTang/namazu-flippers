@@ -39,7 +39,7 @@ public sealed class ScanEngine
     {
         if (!forceRefresh && cacheStore != null)
         {
-            var validCache = await cacheStore.LoadValidAsync(ct);
+            var validCache = await cacheStore.LoadValidAsync(ct).ConfigureAwait(false);
             if (validCache != null)
             {
                 validCache.DerivedResult.Status = ScanEngineStatus.UsingCache;
@@ -50,7 +50,7 @@ public sealed class ScanEngine
             }
         }
 
-        var fresh = await ScanFreshCoreAsync(ct);
+        var fresh = await ScanFreshCoreAsync(ct).ConfigureAwait(false);
 
         if (fresh.Result.Status == ScanEngineStatus.Success)
         {
@@ -59,16 +59,16 @@ public sealed class ScanEngine
             fresh.Result.TotalExpectedDailyProfit = routeStops.Sum(stop => stop.TotalExpectedDailyProfit);
 
             if (fresh.RawResponse != null)
-                await TrySaveCacheAsync(fresh.RawResponse, fresh.Result, ct);
+                await TrySaveCacheAsync(fresh.RawResponse, fresh.Result, ct).ConfigureAwait(false);
         }
         else if (fresh.Result.Status == ScanEngineStatus.Empty)
         {
             if (fresh.RawResponse != null)
-                await TrySaveCacheAsync(fresh.RawResponse, fresh.Result, ct);
+                await TrySaveCacheAsync(fresh.RawResponse, fresh.Result, ct).ConfigureAwait(false);
         }
         else if (cacheStore != null)
         {
-            var staleCache = await cacheStore.LoadAnyAsync(ct);
+            var staleCache = await cacheStore.LoadAnyAsync(ct).ConfigureAwait(false);
             if (staleCache != null)
             {
                 staleCache.DerivedResult.Status = ScanEngineStatus.UsingStaleCache;
@@ -91,7 +91,7 @@ public sealed class ScanEngine
 
         try
         {
-            await cacheStore.SaveAsync(rawResponse, result, ct);
+            await cacheStore.SaveAsync(rawResponse, result, ct).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
@@ -104,13 +104,13 @@ public sealed class ScanEngine
     }
 
     public async Task<ScanEngineResult> ScanFreshAsync(CancellationToken ct = default) =>
-        (await ScanFreshCoreAsync(ct)).Result;
+        (await ScanFreshCoreAsync(ct).ConfigureAwait(false)).Result;
 
     private async Task<(ScanResponse? RawResponse, ScanEngineResult Result)> ScanFreshCoreAsync(CancellationToken ct)
     {
         try
         {
-            var response = await client.ScanAsync(ct);
+            var response = await client.ScanAsync(ct).ConfigureAwait(false);
             var items = response.Items ?? [];
 
             if (items.Count == 0)

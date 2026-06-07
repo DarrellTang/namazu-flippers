@@ -29,7 +29,7 @@ public sealed class ScanCacheStore
 
     public async Task<ScanCacheEnvelope?> LoadValidAsync(CancellationToken ct = default)
     {
-        var envelope = await LoadAnyAsync(ct);
+        var envelope = await LoadAnyAsync(ct).ConfigureAwait(false);
         if (envelope == null)
             return null;
 
@@ -49,7 +49,7 @@ public sealed class ScanCacheStore
             return await JsonSerializer.DeserializeAsync(
                 stream,
                 ApiJsonContext.Default.ScanCacheEnvelope,
-                ct);
+                ct).ConfigureAwait(false);
         }
         catch (Exception ex) when (ex is IOException or JsonException or UnauthorizedAccessException)
         {
@@ -78,7 +78,7 @@ public sealed class ScanCacheStore
                 stream,
                 envelope,
                 ApiJsonContext.Default.ScanCacheEnvelope,
-                ct);
+                ct).ConfigureAwait(false);
         }
 
         File.Move(tempPath, cachePath, overwrite: true);

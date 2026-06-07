@@ -51,7 +51,7 @@ public sealed class SaddlebagClient
     public async Task<ScanResponse> ScanAsync(CancellationToken ct = default)
     {
         if (_rateLimiter != null)
-            await _rateLimiter.WaitAsync(ct);
+            await _rateLimiter.WaitAsync(ct).ConfigureAwait(false);
 
         var request = ScanRequest.FromConfiguration(_config);
         var httpRequest = new HttpRequestMessage(HttpMethod.Post, ScanEndpoint)
@@ -68,11 +68,11 @@ public sealed class SaddlebagClient
         {
             try
             {
-                using var response = await Http.SendAsync(httpRequest, ct);
+                using var response = await Http.SendAsync(httpRequest, ct).ConfigureAwait(false);
 
                 if (response.IsSuccessStatusCode)
                 {
-                    var body = await response.Content.ReadAsStringAsync(ct);
+                    var body = await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
                     var scanResponse = NormalizeScanResponse(body, (int)response.StatusCode);
 
                     _log.Information("/nflip: Scan completed — {Count} items found.",
@@ -83,7 +83,7 @@ public sealed class SaddlebagClient
                 // 4xx → non-transient, surface immediately
                 if ((int)response.StatusCode < 500)
                 {
-                    var body = await response.Content.ReadAsStringAsync(ct);
+                    var body = await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
                     throw new ApiException(
                         $"API error {(int)response.StatusCode}: {body.Truncate(200)}",
                         (int)response.StatusCode, isRetryable: false);
@@ -94,8 +94,8 @@ public sealed class SaddlebagClient
                 {
                     _log.Warning("/nflip: API server error {StatusCode}, retrying... (attempt {Attempt}/{MaxRetries})",
                         (int)response.StatusCode, attempt + 1, MaxRetries);
-                    await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, attempt)), ct);
-                    var newRequest = await CloneHttpRequestAsync(httpRequest);
+                    await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, attempt)), ct).ConfigureAwait(false);
+                    var newRequest = await CloneHttpRequestAsync(httpRequest).ConfigureAwait(false);
                     httpRequest.Dispose();
                     httpRequest = newRequest;
                     continue;
@@ -109,8 +109,8 @@ public sealed class SaddlebagClient
             {
                 _log.Warning("/nflip: Network error, retrying... (attempt {Attempt}/{MaxRetries}): {Message}",
                     attempt + 1, MaxRetries, ex.Message);
-                await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, attempt)), ct);
-                var newRequest = await CloneHttpRequestAsync(httpRequest);
+                await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, attempt)), ct).ConfigureAwait(false);
+                var newRequest = await CloneHttpRequestAsync(httpRequest).ConfigureAwait(false);
                 httpRequest.Dispose();
                 httpRequest = newRequest;
             }
@@ -119,8 +119,8 @@ public sealed class SaddlebagClient
                 // Timeout (not user cancellation)
                 _log.Warning("/nflip: Request timed out, retrying... (attempt {Attempt}/{MaxRetries})",
                     attempt + 1, MaxRetries);
-                await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, attempt)), ct);
-                var newRequest = await CloneHttpRequestAsync(httpRequest);
+                await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, attempt)), ct).ConfigureAwait(false);
+                var newRequest = await CloneHttpRequestAsync(httpRequest).ConfigureAwait(false);
                 httpRequest.Dispose();
                 httpRequest = newRequest;
             }
@@ -141,7 +141,7 @@ public sealed class SaddlebagClient
         var clone = new HttpRequestMessage(original.Method, original.RequestUri);
         if (original.Content != null)
         {
-            var contentBytes = await original.Content.ReadAsByteArrayAsync();
+            var contentBytes = await original.Content.ReadAsByteArrayAsync().ConfigureAwait(false);
             clone.Content = new ByteArrayContent(contentBytes);
             if (original.Content.Headers.ContentType != null)
                 clone.Content.Headers.ContentType = original.Content.Headers.ContentType;

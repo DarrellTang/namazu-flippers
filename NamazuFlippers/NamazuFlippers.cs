@@ -153,8 +153,8 @@ public class NamazuFlippers : IDalamudPlugin
         {
             try
             {
-                await Task.Delay(TimeSpan.FromSeconds(3), scanCts.Token);
-                await RunScanAsync(forceRefresh: false, scanCts.Token);
+                await Task.Delay(TimeSpan.FromSeconds(3), scanCts.Token).ConfigureAwait(false);
+                await RunScanAsync(forceRefresh: false, scanCts.Token).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {
@@ -179,7 +179,7 @@ public class NamazuFlippers : IDalamudPlugin
 
         try
         {
-            var result = await scanEngine.GetRouteAsync(forceRefresh, ct);
+            var result = await scanEngine.GetRouteAsync(forceRefresh, ct).ConfigureAwait(false);
             LatestScanResult = result;
             LastApiError = result.Status == ScanEngineStatus.Error ? result.UserMessage : null;
 
