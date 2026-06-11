@@ -39,7 +39,7 @@ public sealed class ScanEngine
     {
         if (!forceRefresh && cacheStore != null)
         {
-            var validCache = await cacheStore.LoadValidAsync(ct);
+            var validCache = await cacheStore.LoadValidAsync(ct).ConfigureAwait(false);
             if (validCache != null)
             {
                 validCache.DerivedResult.Status = ScanEngineStatus.UsingCache;
@@ -50,7 +50,7 @@ public sealed class ScanEngine
             }
         }
 
-        var fresh = await ScanFreshCoreAsync(ct);
+        var fresh = await ScanFreshCoreAsync(ct).ConfigureAwait(false);
 
         if (fresh.Result.Status == ScanEngineStatus.Success)
         {
@@ -59,16 +59,16 @@ public sealed class ScanEngine
             fresh.Result.TotalExpectedDailyProfit = routeStops.Sum(stop => stop.TotalExpectedDailyProfit);
 
             if (fresh.RawResponse != null)
-                await TrySaveCacheAsync(fresh.RawResponse, fresh.Result, ct);
+                await TrySaveCacheAsync(fresh.RawResponse, fresh.Result, ct).ConfigureAwait(false);
         }
         else if (fresh.Result.Status == ScanEngineStatus.Empty)
         {
             if (fresh.RawResponse != null)
-                await TrySaveCacheAsync(fresh.RawResponse, fresh.Result, ct);
+                await TrySaveCacheAsync(fresh.RawResponse, fresh.Result, ct).ConfigureAwait(false);
         }
         else if (cacheStore != null)
         {
-            var staleCache = await cacheStore.LoadAnyAsync(ct);
+            var staleCache = await cacheStore.LoadAnyAsync(ct).ConfigureAwait(false);
             if (staleCache != null)
             {
                 staleCache.DerivedResult.Status = ScanEngineStatus.UsingStaleCache;
@@ -91,7 +91,7 @@ public sealed class ScanEngine
 
         try
         {
-            await cacheStore.SaveAsync(rawResponse, result, ct);
+            await cacheStore.SaveAsync(rawResponse, result, ct).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
@@ -104,13 +104,13 @@ public sealed class ScanEngine
     }
 
     public async Task<ScanEngineResult> ScanFreshAsync(CancellationToken ct = default) =>
-        (await ScanFreshCoreAsync(ct)).Result;
+        (await ScanFreshCoreAsync(ct).ConfigureAwait(false)).Result;
 
     private async Task<(ScanResponse? RawResponse, ScanEngineResult Result)> ScanFreshCoreAsync(CancellationToken ct)
     {
         try
         {
-            var response = await client.ScanAsync(ct);
+            var response = await client.ScanAsync(ct).ConfigureAwait(false);
             var items = response.Items ?? [];
 
             if (items.Count == 0)
@@ -185,6 +185,10 @@ public sealed class ScanEngine
         };
     }
 
+    // Local hard filters for MinProfitAmount and PreferredRoi: Saddlebag's API treats both
+    // as soft preferences for OOS items, and uses home_server_price for its calc while we
+    // use the more conservative min(home_server_price, avg_ppu). Re-applying locally on
+    // ProfitPerUnit / RoiPercent guarantees the user-visible numbers honor the configured floor.
     private static bool IsUsable(ScanItem item, Configuration config) =>
         item.ItemId > 0 &&
         !string.IsNullOrWhiteSpace(item.Name) &&
@@ -192,6 +196,8 @@ public sealed class ScanEngine
         item.HomePrice > 0 &&
         item.CheapestPrice > 0 &&
         item.ExpectedDailyProfit > 0 &&
+        item.ProfitPerUnit >= config.MinProfitAmount &&
+        item.RoiPercent >= config.PreferredRoi &&
         item.SalesPerDay >= Math.Max(config.MinSalesPerDay, double.Epsilon);
 
     private static RankedOpportunity ToOpportunity(ScanItem item) => new()

@@ -122,7 +122,7 @@ echo
 echo "UI-04: profit tally in GilGold"
 require_all_patterns "NamazuFlippers/UI/DailyRouteWindow.cs" "profit tally rendered with GilGold color" \
   "1\.0f, 0\.85f, 0\.1f" \
-  "ExpectedDailyProfit"
+  "ProfitPerSale"
 
 echo
 echo "UI-05: progress bars with PlotHistogram color override"

@@ -51,7 +51,7 @@ public sealed class SaddlebagClient
     public async Task<ScanResponse> ScanAsync(CancellationToken ct = default)
     {
         if (_rateLimiter != null)
-            await _rateLimiter.WaitAsync(ct);
+            await _rateLimiter.WaitAsync(ct).ConfigureAwait(false);
 
         var request = ScanRequest.FromConfiguration(_config);
         var httpRequest = new HttpRequestMessage(HttpMethod.Post, ScanEndpoint)
@@ -68,11 +68,11 @@ public sealed class SaddlebagClient
         {
             try
             {
-                using var response = await Http.SendAsync(httpRequest, ct);
+                using var response = await Http.SendAsync(httpRequest, ct).ConfigureAwait(false);
 
                 if (response.IsSuccessStatusCode)
                 {
-                    var body = await response.Content.ReadAsStringAsync(ct);
+                    var body = await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
                     var scanResponse = NormalizeScanResponse(body, (int)response.StatusCode);
 
                     _log.Information("/nflip: Scan completed — {Count} items found.",
@@ -83,7 +83,7 @@ public sealed class SaddlebagClient
                 // 4xx → non-transient, surface immediately
                 if ((int)response.StatusCode < 500)
                 {
-                    var body = await response.Content.ReadAsStringAsync(ct);
+                    var body = await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
                     throw new ApiException(
                         $"API error {(int)response.StatusCode}: {body.Truncate(200)}",
                         (int)response.StatusCode, isRetryable: false);
@@ -94,8 +94,8 @@ public sealed class SaddlebagClient
                 {
                     _log.Warning("/nflip: API server error {StatusCode}, retrying... (attempt {Attempt}/{MaxRetries})",
                         (int)response.StatusCode, attempt + 1, MaxRetries);
-                    await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, attempt)), ct);
-                    var newRequest = await CloneHttpRequestAsync(httpRequest);
+                    await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, attempt)), ct).ConfigureAwait(false);
+                    var newRequest = await CloneHttpRequestAsync(httpRequest).ConfigureAwait(false);
                     httpRequest.Dispose();
                     httpRequest = newRequest;
                     continue;
@@ -109,8 +109,8 @@ public sealed class SaddlebagClient
             {
                 _log.Warning("/nflip: Network error, retrying... (attempt {Attempt}/{MaxRetries}): {Message}",
                     attempt + 1, MaxRetries, ex.Message);
-                await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, attempt)), ct);
-                var newRequest = await CloneHttpRequestAsync(httpRequest);
+                await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, attempt)), ct).ConfigureAwait(false);
+                var newRequest = await CloneHttpRequestAsync(httpRequest).ConfigureAwait(false);
                 httpRequest.Dispose();
                 httpRequest = newRequest;
             }
@@ -119,8 +119,8 @@ public sealed class SaddlebagClient
                 // Timeout (not user cancellation)
                 _log.Warning("/nflip: Request timed out, retrying... (attempt {Attempt}/{MaxRetries})",
                     attempt + 1, MaxRetries);
-                await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, attempt)), ct);
-                var newRequest = await CloneHttpRequestAsync(httpRequest);
+                await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, attempt)), ct).ConfigureAwait(false);
+                var newRequest = await CloneHttpRequestAsync(httpRequest).ConfigureAwait(false);
                 httpRequest.Dispose();
                 httpRequest = newRequest;
             }
@@ -141,7 +141,7 @@ public sealed class SaddlebagClient
         var clone = new HttpRequestMessage(original.Method, original.RequestUri);
         if (original.Content != null)
         {
-            var contentBytes = await original.Content.ReadAsByteArrayAsync();
+            var contentBytes = await original.Content.ReadAsByteArrayAsync().ConfigureAwait(false);
             clone.Content = new ByteArrayContent(contentBytes);
             if (original.Content.Headers.ContentType != null)
                 clone.Content.Headers.ContentType = original.Content.Headers.ContentType;
@@ -151,8 +151,11 @@ public sealed class SaddlebagClient
         return clone;
     }
 
-    // home_server_price uses 999_999_999 as a sentinel for out-of-stock items.
-    private const int OutOfStockSentinel = 900_000_000;
+    // OOS marker: empirically verified via direct /api/scan probes (2026-05-15) that Saddlebag
+    // returns home_server_price == 0 (NOT a 999M sentinel as previously assumed) for items
+    // with no current home-server listings. The earlier "OutOfStockSentinel = 900_000_000"
+    // never matched anything, so OOS items were silently dropped by IsUsable's HomePrice > 0
+    // check despite the user enabling "Include out-of-stock items".
 
     private static ScanResponse NormalizeScanResponse(string body, int statusCode)
     {
@@ -190,24 +193,33 @@ public sealed class SaddlebagClient
         double.TryParse(raw.SaleRates, NumberStyles.Float, CultureInfo.InvariantCulture, out var salesPerHour);
         var salesPerDay = salesPerHour * 24;
 
-        var isOutOfStock = raw.HomeServerPrice >= OutOfStockSentinel;
+        var isOutOfStock = raw.HomeServerPrice <= 0;
 
         // Expected sell price: lower of current home listing and historical average.
         // home_server_price is just the cheapest current listing — when it's far above
         // avg_ppu, someone listed unrealistically high and you'd be undercut before
         // selling. avg_ppu is what the item actually clears at.
         // For OOS items, only avg_ppu is available.
+        // Note: Saddlebag's /api/scan applies its min_profit_amount and preferred_roi
+        // filters using home_server_price directly; our conservative min(home, avg)
+        // can produce a smaller per-unit profit. ScanEngine.IsUsable re-applies both
+        // thresholds locally so the user-visible profit/ROI honors the configured floor.
         var expectedSellPrice = isOutOfStock
             ? raw.AvgPpu
             : Math.Min(raw.HomeServerPrice, raw.AvgPpu);
 
         var sellNet = (long)Math.Floor(expectedSellPrice * MarketTaxRate);
-        var profitPerUnit = sellNet - raw.Ppu;
+        var profitPerUnitLong = sellNet - raw.Ppu;
+        var profitPerUnit = profitPerUnitLong >= int.MaxValue
+            ? int.MaxValue
+            : profitPerUnitLong <= int.MinValue ? int.MinValue : (int)profitPerUnitLong;
+
+        var roiPercent = raw.Ppu > 0 ? (profitPerUnitLong / (double)raw.Ppu) * 100.0 : 0.0;
 
         var expectedDailyProfit = 0;
-        if (profitPerUnit > 0 && salesPerDay > 0)
+        if (profitPerUnitLong > 0 && salesPerDay > 0)
         {
-            var product = profitPerUnit * salesPerDay;
+            var product = profitPerUnitLong * salesPerDay;
             expectedDailyProfit = product >= int.MaxValue ? int.MaxValue : (int)product;
         }
 
@@ -220,6 +232,8 @@ public sealed class SaddlebagClient
             CheapestPrice = raw.Ppu,
             SalesPerDay = salesPerDay,
             ExpectedDailyProfit = expectedDailyProfit,
+            ProfitPerUnit = profitPerUnit,
+            RoiPercent = roiPercent,
             OutOfStock = isOutOfStock,
         };
     }

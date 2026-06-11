@@ -36,6 +36,14 @@ public class DailyRouteWindow : Window
     private Dictionary<string, bool> autoCollapsedStops = new();
     private ScanEngineResult? lastSeenResult;
 
+    // FFXIV market board takes 5% in retainer fees on every sale (also defined as
+    // MarketTaxRate in SaddlebagClient — kept here as a literal so the UI calc is
+    // self-contained and works on items loaded from caches that pre-date this change).
+    private const double MarketTaxRate = 0.95;
+
+    private static int ProfitPerSale(RankedOpportunity item) =>
+        (int)(Math.Floor(item.HomePrice * MarketTaxRate) - item.PurchasePrice);
+
     public DailyRouteWindow(NamazuFlippers plugin, IPluginLog log)
         : base("Namazu Flippers — Daily Route", ImGuiWindowFlags.None)
     {
@@ -100,6 +108,10 @@ public class DailyRouteWindow : Window
 
         switch (result.Status)
         {
+            case ScanEngineStatus.Success:
+                ImGui.TextColored(SuccessGreen,
+                    $"Fresh scan from {result.CreatedAtUtc.ToLocalTime():HH:mm}.");
+                break;
             case ScanEngineStatus.UsingCache:
                 ImGui.TextColored(CacheBlue,
                     $"Using cached route from {result.CreatedAtUtc.ToLocalTime():HH:mm}. /nflip scan to refresh.");
@@ -113,7 +125,6 @@ public class DailyRouteWindow : Window
             case ScanEngineStatus.Error:
                 ImGui.TextColored(ErrorRed, result.UserMessage);
                 break;
-            // Success: no banner.
         }
     }
 
@@ -127,10 +138,13 @@ public class DailyRouteWindow : Window
         var totalItems = routeItems.Count;
         var boughtCount = routeItems.Count(o => boughtState.GetValueOrDefault(o.ItemId));
         var listedCount = routeItems.Count(o => listedState.GetValueOrDefault(o.ItemId));
-        var totalProfit = result?.TotalExpectedDailyProfit ?? 0;
+        // Per-sale profit, not per-day: assumes one buy → one sale per item.
+        // The /day number was misleading because the route deliberately spreads risk
+        // across N items rather than concentrating budget on one fast-mover.
+        var totalProfit = routeItems.Sum(ProfitPerSale);
         var listedProfit = routeItems
             .Where(o => listedState.GetValueOrDefault(o.ItemId))
-            .Sum(o => o.ExpectedDailyProfit);
+            .Sum(ProfitPerSale);
 
         ImGui.Text($"Bought: {boughtCount}/{totalItems}   Listed: {listedCount}/{totalItems}");
 
@@ -199,39 +213,46 @@ public class DailyRouteWindow : Window
 
     private void DrawRouteStop(RouteStop stop, ScanEngineResult result)
     {
-        bool allBought = stop.Items.Count > 0
-            && stop.Items.All(item => boughtState.GetValueOrDefault(item.ItemId));
+        // Stop is "done" once all items are LISTED at home (not just bought).
+        // Bought = visited the source server; Listed = posted on home market board.
+        // Auto-collapsing on bought hides items before the user has actually moved them
+        // to the market, which is the wrong moment.
+        bool allListed = stop.Items.Count > 0
+            && stop.Items.All(item => listedState.GetValueOrDefault(item.ItemId));
 
-        // Auto-collapse on first all-bought frame; reset flag when user un-checks (UI-07, Pitfall 2)
-        if (allBought && !autoCollapsedStops.GetValueOrDefault(stop.PurchaseSource))
+        // Auto-collapse on first all-listed frame; reset flag when user un-checks (UI-07, Pitfall 2)
+        if (allListed && !autoCollapsedStops.GetValueOrDefault(stop.PurchaseSource))
         {
             ImGui.SetNextItemOpen(false, ImGuiCond.Always);
             autoCollapsedStops[stop.PurchaseSource] = true;
         }
-        else if (!allBought)
+        else if (!allListed)
         {
             autoCollapsedStops[stop.PurchaseSource] = false;
         }
 
-        // Header label — checkmark prefix and CompletedGray when all bought
+        // Per-sale total for this stop (one buy/sell per item), not the historical /day rate.
+        var stopProfit = stop.Items.Sum(ProfitPerSale);
+
+        // Header label — checkmark prefix and CompletedGray when all listed
         string headerLabel;
-        if (allBought)
+        if (allListed)
         {
             headerLabel = stop.IsVendorStop
-                ? $"✓ Vendor: {stop.PurchaseSource} — {stop.Items.Count} items — {stop.TotalExpectedDailyProfit:n0} gil/day"
-                : $"✓ {stop.PurchaseSource} ({stop.DataCenter}) — {stop.Items.Count} items — {stop.TotalExpectedDailyProfit:n0} gil/day";
+                ? $"✓ Vendor: {stop.PurchaseSource} — {stop.Items.Count} items — {stopProfit:n0} gil"
+                : $"✓ {stop.PurchaseSource} ({stop.DataCenter}) — {stop.Items.Count} items — {stopProfit:n0} gil";
         }
         else
         {
             headerLabel = stop.IsVendorStop
-                ? $"Vendor: {stop.PurchaseSource} — {stop.Items.Count} items — {stop.TotalExpectedDailyProfit:n0} gil/day"
-                : $"{stop.PurchaseSource} ({stop.DataCenter}) — {stop.Items.Count} items — {stop.TotalExpectedDailyProfit:n0} gil/day";
+                ? $"Vendor: {stop.PurchaseSource} — {stop.Items.Count} items — {stopProfit:n0} gil"
+                : $"{stop.PurchaseSource} ({stop.DataCenter}) — {stop.Items.Count} items — {stopProfit:n0} gil";
         }
 
-        // Apply header color: CompletedGray when all bought, VendorCyan for vendor stops
-        bool pushColor = allBought || stop.IsVendorStop;
+        // Apply header color: CompletedGray when all listed, VendorCyan for vendor stops
+        bool pushColor = allListed || stop.IsVendorStop;
         if (pushColor)
-            ImGui.PushStyleColor(ImGuiCol.Text, allBought ? CompletedGray : VendorCyan);
+            ImGui.PushStyleColor(ImGuiCol.Text, allListed ? CompletedGray : VendorCyan);
 
         bool open = ImGui.CollapsingHeader(headerLabel);
 
@@ -267,12 +288,23 @@ public class DailyRouteWindow : Window
                 else
                     ImGui.Text(item.Name);
 
-                if (ImGui.IsItemHovered())
+                // Click name to copy to clipboard for pasting into the market board search.
+                // IsItemHovered + IsMouseClicked is robust on plain Text (which has no native
+                // click capture); SetClipboardText routes through Dalamud's clipboard provider.
+                var nameHovered = ImGui.IsItemHovered();
+                if (nameHovered)
+                    ImGui.SetMouseCursor(ImGuiMouseCursor.Hand);
+                if (nameHovered && ImGui.IsMouseClicked(ImGuiMouseButton.Left))
+                    ImGui.SetClipboardText(item.Name);
+
+                if (nameHovered)
                 {
                     ImGui.BeginTooltip();
                     ImGui.Text($"Avg {item.SalesPerDay:F2} sales/day");
                     if (item.SalesPerDay > 0)
                         ImGui.Text($"~{1.0 / item.SalesPerDay:F1} days between sales");
+                    ImGui.Separator();
+                    ImGui.TextDisabled("Click to copy name");
                     ImGui.EndTooltip();
                 }
 
@@ -290,7 +322,7 @@ public class DailyRouteWindow : Window
                 ImGui.SameLine();
                 ImGui.TextColored(PurchaseCyan, $"Buy: {item.PurchasePrice:n0}");
                 ImGui.SameLine();
-                ImGui.TextColored(GilGold, $"+{item.ExpectedDailyProfit:n0}/day");
+                ImGui.TextColored(GilGold, $"+{ProfitPerSale(item):n0}");
 
                 // Inline velocity hint so the user can judge whether the daily-profit number
                 // comes from many small sales (~fast) or few big sales with a wait (~slow).
