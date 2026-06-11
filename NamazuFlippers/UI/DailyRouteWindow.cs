@@ -163,11 +163,15 @@ public class DailyRouteWindow : Window
             plugin.OpenConfigWindow();
 
         ImGui.SameLine();
-        if (plugin.ScanInProgress)
+        // Snapshot the flag: it flips on a thread-pool thread (scan completion), and
+        // re-reading it after the Button call can unbalance BeginDisabled/EndDisabled,
+        // leaking disabled state into the shared ImGui context.
+        var scanning = plugin.ScanInProgress;
+        if (scanning)
             ImGui.BeginDisabled();
         if (ImGui.Button("Rescan Route", new Vector2(rescanWidth, 0)))
             _ = plugin.RescanAsync(CancellationToken.None);
-        if (plugin.ScanInProgress)
+        if (scanning)
             ImGui.EndDisabled();
 
         var boughtFraction = totalItems > 0 ? (float)boughtCount / totalItems : 0f;

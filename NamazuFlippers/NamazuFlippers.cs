@@ -1,3 +1,4 @@
+using Dalamud.Bindings.ImGui;
 using Dalamud.Game.Command;
 using Dalamud.Interface.Windowing;
 using Dalamud.Plugin;
@@ -214,7 +215,13 @@ public class NamazuFlippers : IDalamudPlugin
             var now = DateTime.UtcNow;
             if (now - lastDrawHeartbeat >= DrawHeartbeatInterval)
             {
-                log.Information("/nflip: Draw heartbeat (tid={Tid}).", Environment.CurrentManagedThreadId);
+                // Style.Alpha is persistent ImGui context state: a leaked BeginDisabled
+                // multiplies it by 0.6 and nothing resets it. Alpha < 1.0 here is the
+                // smoking gun for disabled-stack leakage (ours or another plugin's).
+                log.Information(
+                    "/nflip: Draw heartbeat (tid={Tid}, styleAlpha={Alpha:F3}).",
+                    Environment.CurrentManagedThreadId,
+                    ImGui.GetStyle().Alpha);
                 lastDrawHeartbeat = now;
             }
             windowSystem.Draw();
