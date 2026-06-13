@@ -44,11 +44,20 @@ public sealed class FlipLedgerStore
 
     public async Task<IReadOnlyList<FlipPosition>> LoadOpenPositionsAsync(CancellationToken ct = default)
     {
-        var envelope = await LoadAsync(ct).ConfigureAwait(false);
-        return envelope.Positions
+        var positions = await LoadPositionsAsync(ct).ConfigureAwait(false);
+        return positions
             .Where(position => position.Status is not FlipPositionStatus.Sold and not FlipPositionStatus.Archived
                 && position.RemainingQuantity > 0)
             .OrderBy(position => position.BuyTimestampUtc)
+            .ToList();
+    }
+
+    public async Task<IReadOnlyList<FlipPosition>> LoadPositionsAsync(CancellationToken ct = default)
+    {
+        var envelope = await LoadAsync(ct).ConfigureAwait(false);
+        return envelope.Positions
+            .OrderByDescending(position => position.UpdatedAtUtc)
+            .ThenByDescending(position => position.BuyTimestampUtc)
             .ToList();
     }
 
