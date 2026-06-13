@@ -114,9 +114,10 @@ require_pattern "NamazuFlippers/API/Models/ApiJsonContext.cs" "JsonSerializable\
 echo
 echo "SESS-01: ScanCacheStore.SaveSessionAsync persistence wiring (D-04, D-05, D-06)"
 require_pattern "NamazuFlippers/Data/ScanCacheStore.cs" "public async Task SaveSessionAsync\(SessionState" "SaveSessionAsync method exists"
-require_pattern "NamazuFlippers/Data/ScanCacheStore.cs" "SemaphoreSlim sessionSaveLock" "SemaphoreSlim sessionSaveLock declared (D-05)"
-require_pattern "NamazuFlippers/Data/ScanCacheStore.cs" "await sessionSaveLock\.WaitAsync\(ct\)" "WaitAsync invoked before save (D-05)"
-require_pattern "NamazuFlippers/Data/ScanCacheStore.cs" "sessionSaveLock\.Release\(\)" "Release invoked after save (D-05)"
+require_pattern "NamazuFlippers/Data/ScanCacheStore.cs" "SemaphoreSlim writeGate" "shared SemaphoreSlim writeGate declared (D-05, Phase 6 HARD-01)"
+require_pattern "NamazuFlippers/Data/ScanCacheStore.cs" "await writeGate\.WaitAsync\(ct\)" "WaitAsync invoked before save (D-05)"
+require_pattern "NamazuFlippers/Data/ScanCacheStore.cs" "writeGate\.Release\(\)" "Release invoked after save (D-05)"
+require_pattern "NamazuFlippers/Data/ScanCacheStore.cs" "WriteEnvelopeAsync\(envelope, ct\)" "SaveSessionAsync uses shared envelope writer"
 require_pattern "NamazuFlippers/Data/ScanCacheStore.cs" "cachePath \+ \"\.tmp\"" "atomic temp-file pattern reused"
 require_pattern "NamazuFlippers/Data/ScanCacheStore.cs" "File\.Move\(tempPath, cachePath, overwrite: true\)" "atomic rename reused"
 require_pattern "NamazuFlippers/Data/ScanCacheStore.cs" "could not save session state" "silent log on save failure (D-06)"
@@ -142,16 +143,17 @@ require_pattern "NamazuFlippers/UI/DailyRouteWindow.cs" "plugin\.QueueSessionSav
 require_absent_pattern "NamazuFlippers/UI/DailyRouteWindow.cs" "Resumed your session|Restored session" "no restore banner (D-09)"
 
 echo
-echo "SESS-03: Mark All Bought / Mark All Listed bulk actions (D-10, D-11, D-12, D-13)"
+echo "SESS-03: Mark All Bought / Mark All Listed bulk actions (Phase 6 ledger-adjusted)"
 require_pattern "NamazuFlippers/UI/DailyRouteWindow.cs" "Mark All Bought" "Mark All Bought button label (D-10)"
 require_pattern "NamazuFlippers/UI/DailyRouteWindow.cs" "Mark All Listed" "Mark All Listed button label (D-10)"
 require_order "NamazuFlippers/UI/DailyRouteWindow.cs" "Mark All Bought" "Mark All Listed" "Bought button rendered before Listed button"
 require_order "NamazuFlippers/UI/DailyRouteWindow.cs" "ImGui\.Text\(\\\$\"Bought:" "Mark All Bought" "Mark All row sits AFTER bought/listed counter Text (D-11)"
 require_order "NamazuFlippers/UI/DailyRouteWindow.cs" "Mark All Bought" "ImGui\.ProgressBar" "Mark All row sits BEFORE the progress bars (D-11)"
-require_pattern "NamazuFlippers/UI/DailyRouteWindow.cs" "foreach \(var item in routeItems\) boughtState\[item\.ItemId\] = true" "Mark All Bought iterates routeItems"
+require_pattern "NamazuFlippers/UI/DailyRouteWindow.cs" "pendingBulkBuyItems = routeItems" "Mark All Bought stages routeItems for ledger confirmation"
+require_pattern "NamazuFlippers/UI/DailyRouteWindow.cs" "ConfirmBulkBoughtLots##daily" "Mark All Bought confirms before creating durable lots"
+require_pattern "NamazuFlippers/UI/DailyRouteWindow.cs" "plugin\.QueueBoughtLotSave" "Mark All Bought creates ledger lots after confirmation"
 require_pattern "NamazuFlippers/UI/DailyRouteWindow.cs" "foreach \(var item in routeItems\) listedState\[item\.ItemId\] = true" "Mark All Listed iterates routeItems"
-require_absent_pattern "NamazuFlippers/UI/DailyRouteWindow.cs" "BeginDisabled\(\);[[:space:]]*\n[[:space:]]*if \(ImGui\.Button\(\"Mark All" "Mark All buttons not wrapped in BeginDisabled (D-13)"
-require_absent_pattern "NamazuFlippers/UI/DailyRouteWindow.cs" "Confirm Mark All|Are you sure.*Mark All" "no confirmation modal for Mark All (D-12)"
+require_pattern "NamazuFlippers/UI/DailyRouteWindow.cs" "plugin\.ScanInProgress \|\| totalItems == 0" "Mark All route mutations disabled during scans (Phase 6 HARD-02)"
 
 if [[ "$failures" -ne 0 ]]; then
   printf '\nPhase 05 Nyquist validation failed: %d check(s) failed.\n' "$failures" >&2

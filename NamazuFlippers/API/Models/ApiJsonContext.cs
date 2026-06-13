@@ -23,12 +23,18 @@ namespace NamazuFlippers.API.Models;
 [JsonSerializable(typeof(List<RawScanItem>))]
 [JsonSerializable(typeof(RankedOpportunity))]
 [JsonSerializable(typeof(RouteStop))]
+[JsonSerializable(typeof(ScanWarning))]
 [JsonSerializable(typeof(ScanEngineResult))]
 [JsonSerializable(typeof(ScanCacheEnvelope))]
 [JsonSerializable(typeof(SessionState))]
+[JsonSerializable(typeof(FlipPosition))]
+[JsonSerializable(typeof(FlipPositionStatus))]
+[JsonSerializable(typeof(FlipLedgerEnvelope))]
 [JsonSerializable(typeof(Dictionary<int, bool>))]
 [JsonSerializable(typeof(List<RankedOpportunity>))]
 [JsonSerializable(typeof(List<RouteStop>))]
+[JsonSerializable(typeof(List<ScanWarning>))]
+[JsonSerializable(typeof(List<FlipPosition>))]
 internal sealed partial class ApiJsonContext : JsonSerializerContext
 {
 }

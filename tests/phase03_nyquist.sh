@@ -98,21 +98,20 @@ require_file "NamazuFlippers/NamazuFlippers.cs"
 echo
 echo "SCAN-01: fresh scan filtering, ranking, and structured results"
 require_pattern "NamazuFlippers/API/SaddlebagClient.cs" "NormalizeScanResponse" "scan response shape is normalized at API boundary"
-require_all_patterns "NamazuFlippers/API/SaddlebagClient.cs" "normalizer accepts known wrapper shapes" \
-  "TryGetArrayProperty\\(root, \"items\"" \
-  "TryGetArrayProperty\\(root, \"results\"" \
-  "TryGetArrayProperty\\(root, \"data\"" \
-  "ApiJsonContext\\.Default\\.ListScanItem"
+require_all_patterns "NamazuFlippers/API/SaddlebagClient.cs" "normalizer consumes runtime-discovered raw data array" \
+  "JsonSerializer\\.Deserialize\\(body, ApiJsonContext\\.Default\\.RawScanResponse\\)" \
+  "raw\\.Data \\?\\? \\[\\]" \
+  "Select\\(MapItem\\)"
 require_pattern "NamazuFlippers/Core/ScanEngine.cs" "client\\.ScanAsync\\(ct\\)" "fresh scan calls SaddlebagClient.ScanAsync"
 require_all_patterns "NamazuFlippers/Core/ScanEngine.cs" "invalid scan rows are filtered before ranking" \
-  "Where\\(IsUsable\\)" \
+  "Where\\(item => IsUsable\\(item, configuration\\)\\)" \
   "item\\.ItemId > 0" \
   "!string\\.IsNullOrWhiteSpace\\(item\\.Name\\)" \
   "!string\\.IsNullOrWhiteSpace\\(item\\.CheapestServer\\)" \
   "item\\.HomePrice > 0" \
   "item\\.CheapestPrice > 0" \
   "item\\.ExpectedDailyProfit > 0" \
-  "item\\.SalesPerDay > 0"
+  "item\\.SalesPerDay >= Math\\.Max\\(config\\.MinSalesPerDay, double\\.Epsilon\\)"
 require_all_patterns "NamazuFlippers/Core/ScanEngine.cs" "ranking is deterministic" \
   "OrderByDescending\\(item => item\\.ExpectedDailyProfit\\)" \
   "ThenByDescending\\(item => item\\.SalesPerDay\\)" \
@@ -180,6 +179,7 @@ require_all_patterns "NamazuFlippers/Data/ScanCacheStore.cs" "config fingerprint
   "configuration\\.MinProfitAmount" \
   "configuration\\.MinDesiredAvgPpu" \
   "configuration\\.MinSalesPerWeek" \
+  "configuration\\.MinSalesPerDay" \
   "configuration\\.RegionWide" \
   "configuration\\.IncludeVendors" \
   "configuration\\.ShowOutOfStock" \

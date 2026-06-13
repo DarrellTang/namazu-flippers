@@ -35,6 +35,15 @@ public class DailyRouteWindow : Window
     private Dictionary<int, bool> listedState = new();
     private Dictionary<string, bool> autoCollapsedStops = new();
     private ScanEngineResult? lastSeenResult;
+    private RankedOpportunity? pendingBuyItem;
+    private string pendingBuySource = "";
+    private DateTimeOffset pendingBuyRouteCreatedAtUtc;
+    private int pendingBuyQuantity = 1;
+    private int pendingBuyUnitPrice;
+    private bool openBuyConfirmation;
+    private List<RankedOpportunity> pendingBulkBuyItems = [];
+    private DateTimeOffset pendingBulkBuyRouteCreatedAtUtc;
+    private bool openBulkBuyConfirmation;
 
     // FFXIV market board takes 5% in retainer fees on every sale (also defined as
     // MarketTaxRate in SaddlebagClient — kept here as a literal so the UI calc is
@@ -96,6 +105,9 @@ public class DailyRouteWindow : Window
         // Route stops
         foreach (var stop in result.RouteStops)
             DrawRouteStop(stop, result);
+
+        DrawMarkBoughtPopup();
+        DrawBulkMarkBoughtPopup();
     }
 
     private void DrawStatusBanner(ScanEngineResult? result)
@@ -126,6 +138,27 @@ public class DailyRouteWindow : Window
                 ImGui.TextColored(ErrorRed, result.UserMessage);
                 break;
         }
+
+        if (result.Warnings.Count > 0)
+        {
+            var warning = result.Warnings[0];
+            ImGui.TextColored(StaleAmber, $"Warning: {warning.UserMessage}");
+            if (ImGui.IsItemHovered())
+            {
+                ImGui.BeginTooltip();
+                foreach (var detail in result.Warnings)
+                {
+                    ImGui.TextUnformatted($"{detail.FailureType} • retries: {detail.RetryCount}");
+                    if (!string.IsNullOrWhiteSpace(detail.AffectedWorld))
+                        ImGui.TextUnformatted($"World: {detail.AffectedWorld}");
+                    if (!string.IsNullOrWhiteSpace(detail.AffectedItemName))
+                        ImGui.TextUnformatted($"Item: {detail.AffectedItemName}");
+                    if (!string.IsNullOrWhiteSpace(detail.TechnicalDetails))
+                        ImGui.TextWrapped(detail.TechnicalDetails);
+                }
+                ImGui.EndTooltip();
+            }
+        }
     }
 
     private void DrawProgressSection(ScanEngineResult? result)
@@ -148,15 +181,20 @@ public class DailyRouteWindow : Window
 
         ImGui.Text($"Bought: {boughtCount}/{totalItems}   Listed: {listedCount}/{totalItems}");
 
-        // Phase 5 D-10/D-11/D-13: Whole-route bulk-action row, placed AFTER the bought/listed
-        // counter Text and BEFORE the Settings/Rescan row so it doesn't fight the GAP-E1 right-edge
-        // pixel budget. Bought first, Listed second — left-to-right alignment with the counter row
-        // directly above. Both buttons always enabled (D-13). No confirmation modal (D-12: each
-        // individual checkbox is reversible).
+        // Whole-route bulk-action row, placed AFTER the bought/listed counter Text and BEFORE
+        // the Settings/Rescan row so it doesn't fight the GAP-E1 right-edge pixel budget.
+        // Phase 6 changes Mark All Bought from a session-only shortcut into a confirmation
+        // that creates durable quantity-1 lots at routed buy prices.
+        if (plugin.ScanInProgress || totalItems == 0)
+            ImGui.BeginDisabled();
+
         if (ImGui.Button("Mark All Bought"))
         {
-            foreach (var item in routeItems) boughtState[item.ItemId] = true;
-            plugin.QueueSessionSave(boughtState, listedState);
+            pendingBulkBuyItems = routeItems
+                .Where(item => !boughtState.GetValueOrDefault(item.ItemId))
+                .ToList();
+            pendingBulkBuyRouteCreatedAtUtc = result?.CreatedAtUtc ?? DateTimeOffset.UtcNow;
+            openBulkBuyConfirmation = pendingBulkBuyItems.Count > 0;
         }
         ImGui.SameLine();
         if (ImGui.Button("Mark All Listed"))
@@ -164,6 +202,13 @@ public class DailyRouteWindow : Window
             foreach (var item in routeItems) listedState[item.ItemId] = true;
             plugin.QueueSessionSave(boughtState, listedState);
         }
+
+        if (plugin.ScanInProgress || totalItems == 0)
+            ImGui.EndDisabled();
+
+        ImGui.SameLine();
+        if (ImGui.Button("Positions"))
+            plugin.OpenPositionsWindow();
 
         // GAP-E1 (04-08): buttons on their OWN row (no SameLine after the Text) so
         // avail = ImGui.GetContentRegionAvail().X measures the full content region
@@ -261,11 +306,11 @@ public class DailyRouteWindow : Window
 
         if (open)
         {
-            DrawItems(stop);
+            DrawItems(stop, result);
         }
     }
 
-    private void DrawItems(RouteStop stop)
+    private void DrawItems(RouteStop stop, ScanEngineResult result)
     {
         ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(4, 4));
         try
@@ -273,11 +318,20 @@ public class DailyRouteWindow : Window
             foreach (var item in stop.Items)
             {
                 var bought = boughtState.GetValueOrDefault(item.ItemId);
+                if (plugin.ScanInProgress)
+                    ImGui.BeginDisabled();
                 if (ImGui.Checkbox($"##bought-{item.ItemId}", ref bought))
                 {
-                    boughtState[item.ItemId] = bought;
-                    plugin.QueueSessionSave(boughtState, listedState);
+                    if (bought)
+                        OpenMarkBoughtConfirmation(item, stop.PurchaseSource, result.CreatedAtUtc);
+                    else
+                    {
+                        boughtState[item.ItemId] = false;
+                        plugin.QueueSessionSave(boughtState, listedState);
+                    }
                 }
+                if (plugin.ScanInProgress)
+                    ImGui.EndDisabled();
 
                 ImGui.SameLine();
 
@@ -356,11 +410,15 @@ public class DailyRouteWindow : Window
                 else
                     ImGui.SameLine();
                 var listed = listedState.GetValueOrDefault(item.ItemId);
+                if (plugin.ScanInProgress)
+                    ImGui.BeginDisabled();
                 if (ImGui.Checkbox($"##listed-{item.ItemId}", ref listed))
                 {
                     listedState[item.ItemId] = listed;
                     plugin.QueueSessionSave(boughtState, listedState);
                 }
+                if (plugin.ScanInProgress)
+                    ImGui.EndDisabled();
                 ImGui.SameLine();
                 ImGui.TextColored(GilGold, $"List: {item.HomePrice:n0}");
             }
@@ -369,5 +427,143 @@ public class DailyRouteWindow : Window
         {
             ImGui.PopStyleVar();
         }
+    }
+
+    private void OpenMarkBoughtConfirmation(
+        RankedOpportunity item,
+        string sourceWorld,
+        DateTimeOffset routeCreatedAtUtc)
+    {
+        pendingBuyItem = item;
+        pendingBuySource = sourceWorld;
+        pendingBuyRouteCreatedAtUtc = routeCreatedAtUtc;
+        pendingBuyQuantity = 1;
+        pendingBuyUnitPrice = Math.Max(1, item.PurchasePrice);
+        openBuyConfirmation = true;
+    }
+
+    private void DrawMarkBoughtPopup()
+    {
+        if (openBuyConfirmation)
+        {
+            ImGui.OpenPopup("ConfirmBoughtLot##daily");
+            openBuyConfirmation = false;
+        }
+
+        var popupOpen = true;
+        if (ImGui.BeginPopupModal("ConfirmBoughtLot##daily", ref popupOpen, ImGuiWindowFlags.AlwaysAutoResize))
+        {
+            if (pendingBuyItem == null)
+            {
+                ImGui.CloseCurrentPopup();
+                ImGui.EndPopup();
+                return;
+            }
+
+            ImGui.TextUnformatted(pendingBuyItem.Name);
+            ImGui.TextDisabled($"Source: {pendingBuySource}");
+            ImGui.Spacing();
+
+            if (ImGui.InputInt("Qty", ref pendingBuyQuantity))
+                pendingBuyQuantity = Math.Max(1, pendingBuyQuantity);
+            if (ImGui.InputInt("Unit buy", ref pendingBuyUnitPrice))
+                pendingBuyUnitPrice = Math.Max(1, pendingBuyUnitPrice);
+
+            var projectedProfit = (int)Math.Floor(pendingBuyItem.HomePrice * MarketTaxRate) - pendingBuyUnitPrice;
+            ImGui.TextDisabled($"Expected list {pendingBuyItem.HomePrice:n0} • planned/unit {projectedProfit:n0} gil");
+            ImGui.Spacing();
+
+            var canSave = !plugin.ScanInProgress && pendingBuyQuantity > 0 && pendingBuyUnitPrice > 0;
+            if (!canSave)
+                ImGui.BeginDisabled();
+            if (ImGui.Button("Save Lot", new Vector2(120, 0)))
+            {
+                plugin.QueueBoughtLotSave(
+                    pendingBuyItem,
+                    pendingBuyQuantity,
+                    pendingBuyUnitPrice,
+                    pendingBuySource,
+                    pendingBuyRouteCreatedAtUtc);
+                boughtState[pendingBuyItem.ItemId] = true;
+                plugin.QueueSessionSave(boughtState, listedState);
+                ClearPendingBuy();
+                ImGui.CloseCurrentPopup();
+            }
+            if (!canSave)
+                ImGui.EndDisabled();
+
+            ImGui.SameLine();
+            if (ImGui.Button("Cancel", new Vector2(120, 0)))
+            {
+                ClearPendingBuy();
+                ImGui.CloseCurrentPopup();
+            }
+
+            ImGui.EndPopup();
+        }
+    }
+
+    private void ClearPendingBuy()
+    {
+        pendingBuyItem = null;
+        pendingBuySource = "";
+        pendingBuyRouteCreatedAtUtc = default;
+        pendingBuyQuantity = 1;
+        pendingBuyUnitPrice = 0;
+    }
+
+    private void DrawBulkMarkBoughtPopup()
+    {
+        if (openBulkBuyConfirmation)
+        {
+            ImGui.OpenPopup("ConfirmBulkBoughtLots##daily");
+            openBulkBuyConfirmation = false;
+        }
+
+        var popupOpen = true;
+        if (ImGui.BeginPopupModal("ConfirmBulkBoughtLots##daily", ref popupOpen, ImGuiWindowFlags.AlwaysAutoResize))
+        {
+            ImGui.TextWrapped(
+                $"Create {pendingBulkBuyItems.Count} bought lots at quantity 1 using the routed buy prices?");
+            ImGui.TextDisabled("Correct quantity or unit buy price afterward from Positions.");
+            ImGui.Spacing();
+
+            var canSave = !plugin.ScanInProgress && pendingBulkBuyItems.Count > 0;
+            if (!canSave)
+                ImGui.BeginDisabled();
+            if (ImGui.Button("Save Lots", new Vector2(120, 0)))
+            {
+                foreach (var item in pendingBulkBuyItems)
+                {
+                    plugin.QueueBoughtLotSave(
+                        item,
+                        quantity: 1,
+                        actualUnitBuyPrice: Math.Max(1, item.PurchasePrice),
+                        sourceWorld: item.PurchaseSource,
+                        routeCreatedAtUtc: pendingBulkBuyRouteCreatedAtUtc);
+                    boughtState[item.ItemId] = true;
+                }
+                plugin.QueueSessionSave(boughtState, listedState);
+                ClearPendingBulkBuy();
+                ImGui.CloseCurrentPopup();
+            }
+            if (!canSave)
+                ImGui.EndDisabled();
+
+            ImGui.SameLine();
+            if (ImGui.Button("Cancel", new Vector2(120, 0)))
+            {
+                ClearPendingBulkBuy();
+                ImGui.CloseCurrentPopup();
+            }
+
+            ImGui.EndPopup();
+        }
+    }
+
+    private void ClearPendingBulkBuy()
+    {
+        pendingBulkBuyItems = [];
+        pendingBulkBuyRouteCreatedAtUtc = default;
     }
 }

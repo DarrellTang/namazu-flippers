@@ -24,6 +24,8 @@ public sealed class ScanEngineResult
 
     public List<RouteStop> RouteStops { get; set; } = [];
 
+    public List<ScanWarning> Warnings { get; set; } = [];
+
     public int TotalExpectedDailyProfit { get; set; }
 
     public DateTimeOffset CreatedAtUtc { get; set; } = DateTimeOffset.UtcNow;

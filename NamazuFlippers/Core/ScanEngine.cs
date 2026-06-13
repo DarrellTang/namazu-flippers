@@ -10,6 +10,8 @@ namespace NamazuFlippers.Core;
 /// </summary>
 public sealed class ScanEngine
 {
+    private const int ApiRetryCount = 3;
+
     private readonly SaddlebagClient client;
     private readonly Configuration configuration;
     private readonly RouteOptimizer? routeOptimizer;
@@ -76,6 +78,15 @@ public sealed class ScanEngine
                 staleCache.DerivedResult.UserMessage =
                     "Refresh failed, so I am keeping the last saved route for now.";
                 staleCache.DerivedResult.TechnicalDetails = fresh.Result.TechnicalDetails;
+                staleCache.DerivedResult.Warnings = fresh.Result.Warnings.Count > 0
+                    ? fresh.Result.Warnings
+                    :
+                    [
+                        CreateScanWarning(
+                            "RefreshFailedStaleCache",
+                            staleCache.DerivedResult.UserMessage,
+                            fresh.Result.TechnicalDetails)
+                    ];
                 log.Warning("/nflip: refresh failed; using stale scan cache.");
                 return staleCache.DerivedResult;
             }
@@ -158,6 +169,13 @@ public sealed class ScanEngine
                 Status = ScanEngineStatus.Error,
                 UserMessage = "I could not refresh market data right now. Try again in a bit.",
                 TechnicalDetails = ex.Message,
+                Warnings =
+                [
+                    CreateScanWarning(
+                        "ApiException",
+                        "Market data refresh failed after bounded retries.",
+                        ex.Message)
+                ],
                 IsFresh = true,
             });
         }
@@ -169,6 +187,13 @@ public sealed class ScanEngine
                 Status = ScanEngineStatus.Error,
                 UserMessage = "Something went wrong while scanning. Try again in a bit.",
                 TechnicalDetails = ex.Message,
+                Warnings =
+                [
+                    CreateScanWarning(
+                        "UnexpectedException",
+                        "Market data refresh failed unexpectedly.",
+                        ex.Message)
+                ],
                 IsFresh = true,
             });
         }
@@ -216,4 +241,17 @@ public sealed class ScanEngine
     private static bool IsVendorSource(string purchaseSource) =>
         purchaseSource.Equals("Vendor", StringComparison.OrdinalIgnoreCase) ||
         purchaseSource.StartsWith("Vendor:", StringComparison.OrdinalIgnoreCase);
+
+    private static ScanWarning CreateScanWarning(
+        string failureType,
+        string userMessage,
+        string? technicalDetails) =>
+        new()
+        {
+            FailureType = failureType,
+            TimestampUtc = DateTimeOffset.UtcNow,
+            RetryCount = ApiRetryCount,
+            UserMessage = userMessage,
+            TechnicalDetails = technicalDetails,
+        };
 }

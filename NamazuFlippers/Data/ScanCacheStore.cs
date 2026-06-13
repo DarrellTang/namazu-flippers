@@ -15,7 +15,7 @@ public sealed class ScanCacheStore
     private readonly Configuration configuration;
     private readonly IPluginLog log;
     private readonly string cachePath;
-    private readonly SemaphoreSlim sessionSaveLock = new(1, 1);
+    private readonly SemaphoreSlim writeGate = new(1, 1);
 
     public ScanCacheStore(IDalamudPluginInterface pluginInterface, Configuration configuration, IPluginLog log)
     {
@@ -72,6 +72,43 @@ public sealed class ScanCacheStore
             DerivedResult = result,
         };
 
+        await writeGate.WaitAsync(ct).ConfigureAwait(false);
+        try
+        {
+            await WriteEnvelopeAsync(envelope, ct).ConfigureAwait(false);
+        }
+        finally
+        {
+            writeGate.Release();
+        }
+    }
+
+    public async Task SaveSessionAsync(SessionState sessionState, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(sessionState);
+
+        await writeGate.WaitAsync(ct).ConfigureAwait(false);
+        try
+        {
+            var envelope = await LoadAnyAsync(ct);
+            if (envelope == null)
+                return;
+
+            envelope.SessionState = sessionState;
+            await WriteEnvelopeAsync(envelope, ct).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is IOException or JsonException or UnauthorizedAccessException)
+        {
+            log.Warning("/nflip: could not save session state: {Message}", ex.Message);
+        }
+        finally
+        {
+            writeGate.Release();
+        }
+    }
+
+    private async Task WriteEnvelopeAsync(ScanCacheEnvelope envelope, CancellationToken ct)
+    {
         var tempPath = cachePath + ".tmp";
         await using (var stream = File.Create(tempPath))
         {
@@ -85,41 +122,6 @@ public sealed class ScanCacheStore
         File.Move(tempPath, cachePath, overwrite: true);
     }
 
-    public async Task SaveSessionAsync(SessionState sessionState, CancellationToken ct = default)
-    {
-        ArgumentNullException.ThrowIfNull(sessionState);
-
-        await sessionSaveLock.WaitAsync(ct);
-        try
-        {
-            var envelope = await LoadAnyAsync(ct);
-            if (envelope == null)
-                return;
-
-            envelope.SessionState = sessionState;
-
-            var tempPath = cachePath + ".tmp";
-            await using (var stream = File.Create(tempPath))
-            {
-                await JsonSerializer.SerializeAsync(
-                    stream,
-                    envelope,
-                    ApiJsonContext.Default.ScanCacheEnvelope,
-                    ct);
-            }
-
-            File.Move(tempPath, cachePath, overwrite: true);
-        }
-        catch (Exception ex) when (ex is IOException or JsonException or UnauthorizedAccessException)
-        {
-            log.Warning("/nflip: could not save session state: {Message}", ex.Message);
-        }
-        finally
-        {
-            sessionSaveLock.Release();
-        }
-    }
-
     public string CreateConfigFingerprint()
     {
         var categoryFilters = string.Join(",", configuration.CategoryFilters.Order());
@@ -129,6 +131,7 @@ public sealed class ScanCacheStore
             configuration.MinProfitAmount,
             configuration.MinDesiredAvgPpu,
             configuration.MinSalesPerWeek,
+            configuration.MinSalesPerDay,
             configuration.RegionWide,
             configuration.IncludeVendors,
             configuration.ShowOutOfStock,

@@ -26,12 +26,16 @@ public class NamazuFlippers : IDalamudPlugin
     private readonly SaddlebagClient apiClient;
     private readonly ScanEngine scanEngine;
     private readonly ScanCacheStore cacheStore;
+    private readonly FlipLedgerStore ledgerStore;
     private readonly CancellationTokenSource scanCts = new();
+    private readonly object ledgerSync = new();
+    private List<FlipPosition> openPositions = [];
 
     private readonly WindowSystem windowSystem = new("NamazuFlippers");
     private readonly FirstRunWindow firstRunWindow;
     private readonly DailyRouteWindow dailyRouteWindow;
     private readonly ConfigWindow configWindow;
+    private readonly PositionsWindow positionsWindow;
     private int scanInProgress;
 
     /// <summary>
@@ -52,6 +56,15 @@ public class NamazuFlippers : IDalamudPlugin
 
     public Configuration Configuration { get; set; }
 
+    public IReadOnlyList<FlipPosition> OpenPositions
+    {
+        get
+        {
+            lock (ledgerSync)
+                return openPositions.ToList();
+        }
+    }
+
     /// <summary>True while a scan is currently running. Used by DailyRouteWindow to disable Rescan.</summary>
     public bool ScanInProgress => Interlocked.CompareExchange(ref scanInProgress, 0, 0) == 1;
 
@@ -60,6 +73,104 @@ public class NamazuFlippers : IDalamudPlugin
 
     /// <summary>Opens the ConfigWindow. Called by DailyRouteWindow's in-window Settings button (D-07).</summary>
     public void OpenConfigWindow() => configWindow.IsOpen = true;
+
+    public void OpenPositionsWindow() => positionsWindow.IsOpen = true;
+
+    public void QueueBoughtLotSave(
+        RankedOpportunity item,
+        int quantity,
+        int actualUnitBuyPrice,
+        string sourceWorld,
+        DateTimeOffset routeCreatedAtUtc)
+    {
+        ArgumentNullException.ThrowIfNull(item);
+
+        var now = DateTimeOffset.UtcNow;
+        var position = new FlipPosition
+        {
+            ItemId = item.ItemId,
+            ItemName = item.Name,
+            BuyTimestampUtc = now,
+            SourceWorld = sourceWorld,
+            ActualUnitBuyPrice = Math.Max(1, actualUnitBuyPrice),
+            ExpectedUnitSellPrice = item.HomePrice,
+            PlannedUnitProfit = (int)Math.Floor(item.HomePrice * 0.95) - Math.Max(1, actualUnitBuyPrice),
+            BoughtQuantity = Math.Max(1, quantity),
+            ListedQuantity = 0,
+            SoldQuantity = 0,
+            RemainingQuantity = Math.Max(1, quantity),
+            Status = FlipPositionStatus.Open,
+            RouteCreatedAtUtc = routeCreatedAtUtc,
+            RouteSessionId = $"{Configuration.HomeWorld}-{routeCreatedAtUtc.UtcDateTime:yyyyMMddHHmmss}",
+            HomeWorld = Configuration.HomeWorld,
+            OutOfStock = item.OutOfStock,
+            IsVendorSource = item.IsVendorSource,
+            CreatedAtUtc = now,
+            UpdatedAtUtc = now,
+        };
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await ledgerStore.AddPositionAsync(position, scanCts.Token).ConfigureAwait(false);
+                await RefreshOpenPositionsAsync(scanCts.Token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                // Plugin shutdown raced the ledger write.
+            }
+            catch (Exception ex)
+            {
+                log.Warning("/nflip: could not save bought lot: {Message}", ex.Message);
+            }
+        }, scanCts.Token);
+    }
+
+    public void QueueOpenPositionCorrection(string positionId, int quantity, int actualUnitBuyPrice, string notes)
+    {
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await ledgerStore.UpdateOpenPositionAsync(
+                    positionId,
+                    quantity,
+                    actualUnitBuyPrice,
+                    notes,
+                    scanCts.Token).ConfigureAwait(false);
+                await RefreshOpenPositionsAsync(scanCts.Token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                // Plugin shutdown raced the ledger write.
+            }
+            catch (Exception ex)
+            {
+                log.Warning("/nflip: could not update bought lot: {Message}", ex.Message);
+            }
+        }, scanCts.Token);
+    }
+
+    public void QueueOpenPositionDelete(string positionId)
+    {
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await ledgerStore.DeletePositionAsync(positionId, scanCts.Token).ConfigureAwait(false);
+                await RefreshOpenPositionsAsync(scanCts.Token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                // Plugin shutdown raced the ledger write.
+            }
+            catch (Exception ex)
+            {
+                log.Warning("/nflip: could not delete bought lot: {Message}", ex.Message);
+            }
+        }, scanCts.Token);
+    }
 
     /// <summary>
     /// Queue a fire-and-forget save of the current bought/listed dictionaries to disk.
@@ -104,15 +215,18 @@ public class NamazuFlippers : IDalamudPlugin
         apiClient = new SaddlebagClient(Configuration, log, rateLimiter);
         var routeOptimizer = new RouteOptimizer();
         cacheStore = new ScanCacheStore(pluginInterface, Configuration, log);
+        ledgerStore = new FlipLedgerStore(pluginInterface, log);
         scanEngine = new ScanEngine(apiClient, Configuration, log, routeOptimizer, cacheStore);
 
         firstRunWindow = new FirstRunWindow(Configuration, pluginInterface, log);
         dailyRouteWindow = new DailyRouteWindow(this, log);
         configWindow = new ConfigWindow(this, pluginInterface, log);
+        positionsWindow = new PositionsWindow(this, log);
 
         windowSystem.AddWindow(firstRunWindow);
         windowSystem.AddWindow(dailyRouteWindow);
         windowSystem.AddWindow(configWindow);
+        windowSystem.AddWindow(positionsWindow);
 
         // Show first-run popup on plugin load when home world is unset.
         if (string.IsNullOrEmpty(Configuration.HomeWorld))
@@ -123,12 +237,10 @@ public class NamazuFlippers : IDalamudPlugin
             HelpMessage = "Toggle the Namazu Flippers daily arbitrage route window. Use /nflip scan to refresh the route."
         });
 
-        TaskScheduler.UnobservedTaskException += OnUnobservedTaskException;
-        AppDomain.CurrentDomain.UnhandledException += OnUnhandledException;
-
         clientState.Login += OnLogin;
         pluginInterface.UiBuilder.Draw += DrawWithDiagnostics;
         pluginInterface.UiBuilder.OpenConfigUi += OnOpenConfigUi;
+        QueueLedgerLoad();
 
         if (clientState.IsLoggedIn)
             QueueAutoScan();
@@ -139,8 +251,6 @@ public class NamazuFlippers : IDalamudPlugin
     public void Dispose()
     {
         log.Information("Namazu Flippers Dispose starting.");
-        TaskScheduler.UnobservedTaskException -= OnUnobservedTaskException;
-        AppDomain.CurrentDomain.UnhandledException -= OnUnhandledException;
         clientState.Login -= OnLogin;
         scanCts.Cancel();
         scanCts.Dispose();
@@ -179,6 +289,32 @@ public class NamazuFlippers : IDalamudPlugin
     }
 
     private void OnOpenConfigUi() => configWindow.IsOpen = true;
+
+    private void QueueLedgerLoad()
+    {
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await RefreshOpenPositionsAsync(scanCts.Token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                // Plugin shutdown raced ledger load.
+            }
+            catch (Exception ex)
+            {
+                log.Warning("/nflip: could not load flip ledger: {Message}", ex.Message);
+            }
+        }, scanCts.Token);
+    }
+
+    private async Task RefreshOpenPositionsAsync(CancellationToken ct)
+    {
+        var positions = await ledgerStore.LoadOpenPositionsAsync(ct).ConfigureAwait(false);
+        lock (ledgerSync)
+            openPositions = positions.ToList();
+    }
 
     private void OnLogin() => QueueAutoScan();
 
@@ -246,19 +382,10 @@ public class NamazuFlippers : IDalamudPlugin
         }
     }
 
-    private DateTime lastDrawHeartbeat = DateTime.MinValue;
-    private static readonly TimeSpan DrawHeartbeatInterval = TimeSpan.FromSeconds(60);
-
     private void DrawWithDiagnostics()
     {
         try
         {
-            var now = DateTime.UtcNow;
-            if (now - lastDrawHeartbeat >= DrawHeartbeatInterval)
-            {
-                log.Information("/nflip: Draw heartbeat (tid={Tid}).", Environment.CurrentManagedThreadId);
-                lastDrawHeartbeat = now;
-            }
             windowSystem.Draw();
         }
         catch (Exception ex)
@@ -266,19 +393,5 @@ public class NamazuFlippers : IDalamudPlugin
             log.Error(ex, "/nflip: exception in Draw — rethrowing to Dalamud.");
             throw;
         }
-    }
-
-    private void OnUnobservedTaskException(object? sender, UnobservedTaskExceptionEventArgs e)
-    {
-        log.Error(e.Exception, "/nflip: unobserved task exception.");
-        e.SetObserved();
-    }
-
-    private void OnUnhandledException(object? sender, UnhandledExceptionEventArgs e)
-    {
-        if (e.ExceptionObject is Exception ex)
-            log.Error(ex, "/nflip: AppDomain unhandled exception (terminating={Terminating}).", e.IsTerminating);
-        else
-            log.Error("/nflip: AppDomain unhandled non-Exception (terminating={Terminating}).", e.IsTerminating);
     }
 }
