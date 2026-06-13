@@ -8,6 +8,7 @@ namespace NamazuFlippers.Data;
 public sealed class FlipLedgerStore
 {
     private const string LedgerFileName = "flip-ledger.json";
+    private const double MarketTaxRate = 0.95;
 
     private readonly IPluginLog log;
     private readonly string ledgerPath;
@@ -136,6 +137,63 @@ public sealed class FlipLedgerStore
         }
     }
 
+    public async Task<FlipSale?> RecordSaleAsync(
+        string positionId,
+        int quantity,
+        int actualUnitSalePrice,
+        string notes,
+        CancellationToken ct = default)
+    {
+        await writeGate.WaitAsync(ct).ConfigureAwait(false);
+        try
+        {
+            var envelope = await LoadAsync(ct).ConfigureAwait(false);
+            var position = envelope.Positions.FirstOrDefault(p => p.Id == positionId);
+            if (position == null || position.RemainingQuantity <= 0)
+                return null;
+
+            var soldQuantity = Math.Clamp(quantity, 1, position.RemainingQuantity);
+            var unitSalePrice = Math.Max(1, actualUnitSalePrice);
+            var netUnitSalePrice = (int)Math.Floor(unitSalePrice * MarketTaxRate);
+            var unitBuyPrice = ResolveUnitBuyPrice(position);
+            var realizedUnitProfit = netUnitSalePrice - unitBuyPrice;
+            position.Sales ??= [];
+            var sale = new FlipSale
+            {
+                Id = Guid.NewGuid().ToString("N"),
+                SoldAtUtc = DateTimeOffset.UtcNow,
+                Quantity = soldQuantity,
+                ActualUnitSalePrice = unitSalePrice,
+                NetUnitSalePrice = netUnitSalePrice,
+                UnitBuyPrice = unitBuyPrice,
+                RealizedUnitProfit = realizedUnitProfit,
+                TotalRealizedProfit = realizedUnitProfit * soldQuantity,
+                Notes = notes.Trim(),
+            };
+
+            position.Sales.Add(sale);
+            position.SoldQuantity = Math.Clamp(position.SoldQuantity + soldQuantity, 0, position.BoughtQuantity);
+            position.RemainingQuantity = Math.Max(0, position.BoughtQuantity - position.SoldQuantity);
+            position.ListedQuantity = Math.Clamp(
+                Math.Max(position.ListedQuantity, position.SoldQuantity),
+                0,
+                position.BoughtQuantity);
+            position.LastSoldAtUtc = sale.SoldAtUtc;
+            position.TotalRealizedProfit = position.Sales.Sum(s => s.TotalRealizedProfit);
+            position.UpdatedAtUtc = sale.SoldAtUtc;
+            position.Status = position.RemainingQuantity > 0
+                ? FlipPositionStatus.Listed
+                : FlipPositionStatus.Sold;
+
+            await WriteEnvelopeAsync(envelope, ct).ConfigureAwait(false);
+            return sale;
+        }
+        finally
+        {
+            writeGate.Release();
+        }
+    }
+
     private async Task<FlipLedgerEnvelope?> LoadFromPathAsync(string path, CancellationToken ct)
     {
         if (!File.Exists(path))
@@ -179,5 +237,15 @@ public sealed class FlipLedgerStore
         }
 
         File.Move(tempPath, ledgerPath, overwrite: true);
+    }
+
+    private static int ResolveUnitBuyPrice(FlipPosition position)
+    {
+        if (position.ActualUnitBuyPrice > 0)
+            return position.ActualUnitBuyPrice;
+
+        var plannedUnitBuyPrice = (int)Math.Floor(position.ExpectedUnitSellPrice * MarketTaxRate)
+            - position.PlannedUnitProfit;
+        return Math.Max(1, plannedUnitBuyPrice);
     }
 }
