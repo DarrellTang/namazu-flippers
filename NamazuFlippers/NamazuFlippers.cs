@@ -1,3 +1,4 @@
+using Dalamud.Bindings.ImGui;
 using Dalamud.Game.Command;
 using Dalamud.Interface.Windowing;
 using Dalamud.Plugin;
@@ -382,10 +383,34 @@ public class NamazuFlippers : IDalamudPlugin
         }
     }
 
+    private float lastSeenAlpha = -1f;
+
     private void DrawWithDiagnostics()
     {
         try
         {
+            // Style.Alpha is persistent ImGui context state. At this point in the frame no
+            // window-fade StyleVar pushes are active (each WindowHost pops within its own
+            // draw), so any value drift here is a leak, not an animation. Observed failure
+            // mode (2026-06-10): alpha stuck at 0.000 -> every ImGui window in the game
+            // invisible until restart.
+            var alpha = ImGui.GetStyle().Alpha;
+            if (lastSeenAlpha < 0)
+                lastSeenAlpha = alpha;
+            if (Math.Abs(alpha - lastSeenAlpha) > 0.05f)
+            {
+                log.Warning(
+                    "/nflip: global ImGui alpha shifted {Old:F3} -> {New:F3} (scanning={Scanning}, routeWindowOpen={Open}).",
+                    lastSeenAlpha, alpha, ScanInProgress, dailyRouteWindow.IsOpen);
+                lastSeenAlpha = alpha;
+            }
+
+            if (alpha < 0.05f)
+            {
+                log.Warning("/nflip: global ImGui alpha was {Alpha:F3}; resetting to 1.0 so the UI stays visible.", alpha);
+                ImGui.GetStyle().Alpha = 1f;
+                lastSeenAlpha = 1f;
+            }
             windowSystem.Draw();
         }
         catch (Exception ex)

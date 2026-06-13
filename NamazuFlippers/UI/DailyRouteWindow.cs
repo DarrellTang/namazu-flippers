@@ -185,7 +185,8 @@ public class DailyRouteWindow : Window
         // the Settings/Rescan row so it doesn't fight the GAP-E1 right-edge pixel budget.
         // Phase 6 changes Mark All Bought from a session-only shortcut into a confirmation
         // that creates durable quantity-1 lots at routed buy prices.
-        if (plugin.ScanInProgress || totalItems == 0)
+        var routeMutationsDisabled = plugin.ScanInProgress || totalItems == 0;
+        if (routeMutationsDisabled)
             ImGui.BeginDisabled();
 
         if (ImGui.Button("Mark All Bought"))
@@ -203,7 +204,7 @@ public class DailyRouteWindow : Window
             plugin.QueueSessionSave(boughtState, listedState);
         }
 
-        if (plugin.ScanInProgress || totalItems == 0)
+        if (routeMutationsDisabled)
             ImGui.EndDisabled();
 
         ImGui.SameLine();
@@ -235,11 +236,15 @@ public class DailyRouteWindow : Window
             plugin.OpenConfigWindow();
 
         ImGui.SameLine();
-        if (plugin.ScanInProgress)
+        // Snapshot the flag: it flips on a thread-pool thread (scan completion), and
+        // re-reading it after the Button call can unbalance BeginDisabled/EndDisabled,
+        // leaking disabled state into the shared ImGui context.
+        var scanning = plugin.ScanInProgress;
+        if (scanning)
             ImGui.BeginDisabled();
         if (ImGui.Button("Rescan Route", new Vector2(rescanWidth, 0)))
             _ = plugin.RescanAsync(CancellationToken.None);
-        if (plugin.ScanInProgress)
+        if (scanning)
             ImGui.EndDisabled();
 
         var boughtFraction = totalItems > 0 ? (float)boughtCount / totalItems : 0f;
@@ -318,7 +323,8 @@ public class DailyRouteWindow : Window
             foreach (var item in stop.Items)
             {
                 var bought = boughtState.GetValueOrDefault(item.ItemId);
-                if (plugin.ScanInProgress)
+                var scanning = plugin.ScanInProgress;
+                if (scanning)
                     ImGui.BeginDisabled();
                 if (ImGui.Checkbox($"##bought-{item.ItemId}", ref bought))
                 {
@@ -330,7 +336,7 @@ public class DailyRouteWindow : Window
                         plugin.QueueSessionSave(boughtState, listedState);
                     }
                 }
-                if (plugin.ScanInProgress)
+                if (scanning)
                     ImGui.EndDisabled();
 
                 ImGui.SameLine();
@@ -410,14 +416,15 @@ public class DailyRouteWindow : Window
                 else
                     ImGui.SameLine();
                 var listed = listedState.GetValueOrDefault(item.ItemId);
-                if (plugin.ScanInProgress)
+                scanning = plugin.ScanInProgress;
+                if (scanning)
                     ImGui.BeginDisabled();
                 if (ImGui.Checkbox($"##listed-{item.ItemId}", ref listed))
                 {
                     listedState[item.ItemId] = listed;
                     plugin.QueueSessionSave(boughtState, listedState);
                 }
-                if (plugin.ScanInProgress)
+                if (scanning)
                     ImGui.EndDisabled();
                 ImGui.SameLine();
                 ImGui.TextColored(GilGold, $"List: {item.HomePrice:n0}");
