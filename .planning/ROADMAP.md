@@ -13,7 +13,7 @@ Build a Dalamud plugin from scratch that connects to the Saddlebag Exchange API,
 - [x] **Phase 5: Session Persistence** - JSON session store, scan caching, resume support
 - [x] **Phase 6: Runtime Hardening & Ledger Foundation** - stabilize persistence/runtime behavior and introduce durable flip positions
 - [x] **Phase 7: Manual Realized Profit Tracking** - mark items sold, capture sale price, compute item-level realized profit by buy date
-- [ ] **Phase 8: Profit History UI** - daily/weekly/monthly profit history, open positions, sold-item review
+- [x] **Phase 8: Profit History UI** - daily/weekly/monthly profit history, open positions, sold-item review
 - [ ] **Phase 9: Retainer/Gil Detection Spike** - determine what Dalamud can reliably read from retainers, gil totals, chat, or sale history
 - [ ] **Phase 10: Assisted Reconciliation & Polish** - automate safe sale matching where possible and prepare release-quality UX
 
@@ -143,10 +143,10 @@ Plans:
   2. Player can review open positions that are bought/listed but not sold
   3. Sold items are grouped or filterable by buy date
   4. Projected vs realized profit is clearly separated
-**Plans**: TBD
+**Plans**: 1 plan
 
 Plans:
-- [ ] 08-01: Build profit history and open-position views
+- [x] 08-01: Build profit history and open-position views
 
 ### Phase 9: Retainer/Gil Detection Spike
 **Goal**: Determine what profit-related data can be safely and reliably observed from the game runtime
@@ -198,7 +198,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 | 5. Session Persistence | 1/1 | ✓ Complete | 2026-05-11 |
 | 6. Runtime Hardening & Ledger Foundation | 1/1 | ✓ Complete | 2026-06-13 |
 | 7. Manual Realized Profit Tracking | 1/1 | ✓ Complete | 2026-06-13 |
-| 8. Profit History UI | 0/TBD | Not started | - |
+| 8. Profit History UI | 1/1 | ✓ Complete | 2026-06-13 |
 | 9. Retainer/Gil Detection Spike | 0/TBD | Not started | - |
 | 10. Assisted Reconciliation & Polish | 0/TBD | Not started | - |
 

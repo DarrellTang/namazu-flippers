@@ -30,6 +30,7 @@ public class NamazuFlippers : IDalamudPlugin
     private readonly FlipLedgerStore ledgerStore;
     private readonly CancellationTokenSource scanCts = new();
     private readonly object ledgerSync = new();
+    private List<FlipPosition> ledgerPositions = [];
     private List<FlipPosition> openPositions = [];
 
     private readonly WindowSystem windowSystem = new("NamazuFlippers");
@@ -37,6 +38,7 @@ public class NamazuFlippers : IDalamudPlugin
     private readonly DailyRouteWindow dailyRouteWindow;
     private readonly ConfigWindow configWindow;
     private readonly PositionsWindow positionsWindow;
+    private readonly ProfitHistoryWindow profitHistoryWindow;
     private int scanInProgress;
 
     /// <summary>
@@ -66,6 +68,15 @@ public class NamazuFlippers : IDalamudPlugin
         }
     }
 
+    public IReadOnlyList<FlipPosition> LedgerPositions
+    {
+        get
+        {
+            lock (ledgerSync)
+                return ledgerPositions.ToList();
+        }
+    }
+
     /// <summary>True while a scan is currently running. Used by DailyRouteWindow to disable Rescan.</summary>
     public bool ScanInProgress => Interlocked.CompareExchange(ref scanInProgress, 0, 0) == 1;
 
@@ -76,6 +87,8 @@ public class NamazuFlippers : IDalamudPlugin
     public void OpenConfigWindow() => configWindow.IsOpen = true;
 
     public void OpenPositionsWindow() => positionsWindow.IsOpen = true;
+
+    public void OpenProfitHistoryWindow() => profitHistoryWindow.IsOpen = true;
 
     public void QueueBoughtLotSave(
         RankedOpportunity item,
@@ -248,11 +261,13 @@ public class NamazuFlippers : IDalamudPlugin
         dailyRouteWindow = new DailyRouteWindow(this, log);
         configWindow = new ConfigWindow(this, pluginInterface, log);
         positionsWindow = new PositionsWindow(this, log);
+        profitHistoryWindow = new ProfitHistoryWindow(this);
 
         windowSystem.AddWindow(firstRunWindow);
         windowSystem.AddWindow(dailyRouteWindow);
         windowSystem.AddWindow(configWindow);
         windowSystem.AddWindow(positionsWindow);
+        windowSystem.AddWindow(profitHistoryWindow);
 
         // Show first-run popup on plugin load when home world is unset.
         if (string.IsNullOrEmpty(Configuration.HomeWorld))
@@ -337,9 +352,17 @@ public class NamazuFlippers : IDalamudPlugin
 
     private async Task RefreshOpenPositionsAsync(CancellationToken ct)
     {
-        var positions = await ledgerStore.LoadOpenPositionsAsync(ct).ConfigureAwait(false);
+        var positions = await ledgerStore.LoadPositionsAsync(ct).ConfigureAwait(false);
+        var open = positions
+            .Where(position => position.Status is not FlipPositionStatus.Sold and not FlipPositionStatus.Archived
+                && position.RemainingQuantity > 0)
+            .OrderBy(position => position.BuyTimestampUtc)
+            .ToList();
         lock (ledgerSync)
-            openPositions = positions.ToList();
+        {
+            ledgerPositions = positions.ToList();
+            openPositions = open;
+        }
     }
 
     private void OnLogin() => QueueAutoScan();

@@ -210,6 +210,9 @@ public class DailyRouteWindow : Window
         ImGui.SameLine();
         if (ImGui.Button("Positions"))
             plugin.OpenPositionsWindow();
+        ImGui.SameLine();
+        if (ImGui.Button("History"))
+            plugin.OpenProfitHistoryWindow();
 
         // GAP-E1 (04-08): buttons on their OWN row (no SameLine after the Text) so
         // avail = ImGui.GetContentRegionAvail().X measures the full content region
