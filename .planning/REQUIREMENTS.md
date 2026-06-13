@@ -69,10 +69,10 @@
 
 ### Manual Realized Profit
 
-- [ ] **PROFIT-01**: User can mark a bought/listed position as sold
-- [ ] **PROFIT-02**: User can enter or confirm the actual sale price for a sold position
-- [ ] **PROFIT-03**: Plugin computes realized item profit as `floor(sale_price * 0.95) - actual_or_planned_buy_price`
-- [ ] **PROFIT-04**: Sold positions remain tied to their original buy date and can be reviewed later
+- [x] **PROFIT-01**: User can mark a bought/listed position as sold
+- [x] **PROFIT-02**: User can enter or confirm the actual sale price for a sold position
+- [x] **PROFIT-03**: Plugin computes realized item profit as `floor(sale_price * 0.95) - actual_or_planned_buy_price`
+- [x] **PROFIT-04**: Sold positions remain tied to their original buy date and can be reviewed later
 
 ### Profit History
 
@@ -155,10 +155,10 @@
 | LEDGER-01 | Phase 6 | Complete |
 | LEDGER-02 | Phase 6 | Complete |
 | LEDGER-03 | Phase 6 | Complete |
-| PROFIT-01 | Phase 7 | Pending |
-| PROFIT-02 | Phase 7 | Pending |
-| PROFIT-03 | Phase 7 | Pending |
-| PROFIT-04 | Phase 7 | Pending |
+| PROFIT-01 | Phase 7 | Complete |
+| PROFIT-02 | Phase 7 | Complete |
+| PROFIT-03 | Phase 7 | Complete |
+| PROFIT-04 | Phase 7 | Complete |
 | HIST-01 | Phase 8 | Pending |
 | HIST-02 | Phase 8 | Pending |
 | HIST-03 | Phase 8 | Pending |
@@ -183,4 +183,4 @@
 
 ---
 *Requirements defined: 2026-05-04*
-*Last updated: 2026-06-13 — Roadmap reshaped after post-Phase-5 in-game usage. Shortage predictor moved to backlog; next milestone work prioritizes runtime hardening, durable flip positions, manual realized-profit tracking, profit history, and retainer/gil observability.*
+*Last updated: 2026-06-13 — Phase 7 manual realized-profit tracking implemented. Open bought lots can be marked sold with actual sale price, tax-adjusted realized profit, partial-close behavior, and preserved buy-date/session trace.*
