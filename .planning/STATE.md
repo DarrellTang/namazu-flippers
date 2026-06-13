@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: completed
-stopped_at: Phase 6 SPEC written
-last_updated: "2026-06-13T05:14:40.390Z"
-last_activity: 2026-06-13 -- Roadmap reshaped after post-Phase-5 in-game usage and profit-tracking discussion
+status: in_progress
+stopped_at: Phase 6 implemented and draft PR CI passed
+last_updated: "2026-06-13T05:59:00.000Z"
+last_activity: 2026-06-13 -- Phase 6 runtime hardening and ledger foundation implemented on draft PR #1
 progress:
   total_phases: 10
-  completed_phases: 5
-  total_plans: 15
-  completed_plans: 15
-  percent: 50
+  completed_phases: 6
+  total_plans: 16
+  completed_plans: 16
+  percent: 60
 ---
 
 # Project State
@@ -21,18 +21,18 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-13)
 
 **Core value:** A single button gives you today's best arbitrage route, then tracks which flips sold and how much realized profit they produced.
-**Current focus:** Phase 06 — runtime-hardening-ledger-foundation
+**Current focus:** Phase 07 — manual-realized-profit-tracking
 **Build model:** macOS local builds are not expected to compile without Dalamud SDK assemblies; use source validation locally and GitHub Actions as the authoritative compiler/package gate.
 
 ## Current Position
 
-Phase: 06 (runtime-hardening-ledger-foundation) — READY FOR DISCUSS/PLAN RECONCILIATION
+Phase: 07 (manual-realized-profit-tracking) — READY FOR SPEC/PLAN
 Plan: 0 of TBD
-Next: 06 — Runtime Hardening & Ledger Foundation (`$gsd-discuss-phase 6` to reconcile SPEC into context, then `$gsd-plan-phase 6`)
-Status: Phase 05 complete by artifacts; Phase 06 SPEC and context exist; reconcile before planning if following strict GSD order
-Last activity: 2026-06-13 -- Roadmap reshaped after post-Phase-5 in-game usage and profit-tracking discussion
+Next: 07 — Manual Realized Profit Tracking (`$gsd-spec-phase 7` or implement directly from the end-state contract)
+Status: Phase 06 implemented on `codex/tracking`; draft PR #1 is mergeable and GitHub Actions build passed
+Last activity: 2026-06-13 -- Phase 6 runtime hardening and ledger foundation implemented, validated, and pushed
 
-Progress: [████████████████████] 15/15 planned plans complete; next phases intentionally unplanned
+Progress: [████████████░░░░░░░░] 6/10 phases complete; next phases intentionally unplanned
 
 **Phase 1 deliverables:**
 
@@ -67,6 +67,7 @@ Progress: [████████████████████] 15/15 p
 | Phase 04 P04-03 | 4min | 2 tasks | 1 files |
 | Phase 04 P04-07 | 2 min | 2 tasks | 2 files |
 | Phase 04 P04-08 | 4 min | 2 tasks | 2 files |
+| Phase 06 P06-01 | ~1 session | 1 bundled plan | 15 code/test files |
 
 ## Accumulated Context
 
@@ -91,19 +92,22 @@ Progress: [████████████████████] 15/15 p
 - Post-Phase-5 in-game use produced builds 33-38 with one-off runtime corrections: success banner, diagnostic logging, OOS sentinel correction, local MinProfit/ROI enforcement, all-listed completion semantics, click-to-copy names, per-sale profit display, and ConfigureAwait(false).
 - Product direction changed after real usage: shortage predictor is deferred; the next value is a reliable flip-profit journal that tracks bought items, sold items, sale price, and realized profit by original buy date.
 - Profit tracking will be position-based rather than full accounting. Teleports, repairs, incidental purchases, and unrelated gil changes are accepted blind spots; item-level sale outcomes are the primary signal.
+- Phase 06 implemented durable bought-lot storage in `flip-ledger.json` with schema versioning and backup-on-write, plus mark-bought confirmation and an open positions correction view.
+- Phase 06 kept automatic mutation below the automation ceiling: bought lots are created only from explicit user confirmation, and no sold-state or reconciliation automation exists yet.
+- Upstream UI alpha self-heal from main was retained during conflict resolution, but periodic draw heartbeat logging remains removed.
 
 ### Pending Todos
 
-- Phase 06 SPEC exists; context was gathered before SPEC, so strict GSD flow should reconcile context against the locked SPEC before planning.
-- Update or replace stale source-validation assertions in `tests/phase03_nyquist.sh` during Phase 06 hardening.
+- Phase 07 needs sold-state workflow design/implementation: actual sale price entry, close/partial-close behavior, and tax-adjusted realized profit.
+- Keep Phase 07 manual and confirmation-based; assisted reconciliation waits for Phase 9/10 observability.
 
 ### Blockers/Concerns
 
-- Known Phase 05 review risks remain to be addressed before ledger work depends on persistence: scan-cache/session write race, Mark All during scan, stale ItemId hydration, disposed CTS/unobserved task noise, and missing `MinSalesPerDay` in cache fingerprint.
+- Phase 06 draft PR #1 should still get in-game UAT before merging because it changes route bought interactions and adds a durable ledger file.
 - Local macOS compiler verification is intentionally replaced by source validation plus CI build verification.
 
 ## Session Continuity
 
-Last session: 2026-06-13T05:14:40.379Z
-Stopped at: Phase 6 SPEC written
-Next command: `$gsd-discuss-phase 6`
+Last session: 2026-06-13T05:59:00.000Z
+Stopped at: Phase 6 implemented; draft PR #1 build passed
+Next command: `$gsd-spec-phase 7` or continue implementing Phase 7 manual realized-profit tracking

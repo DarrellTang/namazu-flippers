@@ -17,11 +17,11 @@ A single button gives you today's best arbitrage route. Follow it, buy, list, do
 - SCAN-01, SCAN-02, SCAN-03, SCAN-04: Scan engine, route optimizer, cache, and manual refresh wiring validated in Phase 3
 - UI-01 through UI-08: Core UI validated in Phase 4 — 8/8 must-haves verified after gap-closure (04-04 listed-checkbox + profit tally, 04-05 Settings/Rescan layout at 420px, 04-06 ConfigWindow Discard); 4 debug sessions resolved; UAT closed
 - SESS-01 through SESS-03: Session persistence delivered in Phase 5 with bought/listed state in the scan-cache envelope and Mark All actions
+- HARD-01 through HARD-03: Runtime hardening delivered in Phase 6 with shared cache write serialization, deterministic scan-time UI mutation behavior, and release-appropriate diagnostics
+- LEDGER-01 through LEDGER-03: Durable bought-lot ledger foundation delivered in Phase 6 with independent `flip-ledger.json` persistence and original buy-date/session trace
 
 ### Active
 
-- [ ] HARD-01: Runtime persistence hardening so scan-cache/session writes cannot race
-- [ ] LEDGER-01: Durable flip-position records tied to buy date and route session
 - [ ] PROFIT-01: Manual sold-state and actual sale-price tracking
 - [ ] HIST-01: Historical realized-profit view
 - [ ] AUTO-01: Retainer/gil observability spike for assisted reconciliation
@@ -86,4 +86,4 @@ Login -> open plugin -> see today's route -> travel to server -> buy items -> re
 | Shortage predictor moved to backlog | In-game use shows the current route works; the missing value is outcome tracking, not more opportunity sources | Phase 6+ |
 
 ---
-*Last updated: 2026-06-13 after post-Phase-5 in-game usage shifted the product target from route generation alone to route generation plus realized flip-profit history.*
+*Last updated: 2026-06-13 after Phase 6 added runtime hardening and durable bought-lot ledger foundations.*

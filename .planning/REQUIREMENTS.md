@@ -57,15 +57,15 @@
 
 ### Runtime Hardening
 
-- [ ] **HARD-01**: Scan cache writes and session-state writes are serialized so they cannot corrupt or roll back `scan-cache.json`
-- [ ] **HARD-02**: UI actions during an in-flight scan cannot silently lose bought/listed state
-- [ ] **HARD-03**: Runtime diagnostics are release-appropriate and do not globally suppress unrelated plugin/application failures
+- [x] **HARD-01**: Scan cache writes and session-state writes are serialized so they cannot corrupt or roll back `scan-cache.json`
+- [x] **HARD-02**: UI actions during an in-flight scan cannot silently lose bought/listed state
+- [x] **HARD-03**: Runtime diagnostics are release-appropriate and do not globally suppress unrelated plugin/application failures
 
 ### Flip Ledger
 
-- [ ] **LEDGER-01**: Each routed item can be stored as a durable flip position with item id/name, buy date, source server, planned buy/list prices, and planned profit
-- [ ] **LEDGER-02**: Position records survive plugin reloads independently of whether the current scan cache is fresh
-- [ ] **LEDGER-03**: Position records preserve the original buy date/session so future realized profit can be reported against when the item was bought
+- [x] **LEDGER-01**: Each routed item can be stored as a durable flip position with item id/name, buy date, source server, planned buy/list prices, and planned profit
+- [x] **LEDGER-02**: Position records survive plugin reloads independently of whether the current scan cache is fresh
+- [x] **LEDGER-03**: Position records preserve the original buy date/session so future realized profit can be reported against when the item was bought
 
 ### Manual Realized Profit
 
@@ -149,12 +149,12 @@
 | SESS-01 | Phase 5 | Complete |
 | SESS-02 | Phase 5 | Complete |
 | SESS-03 | Phase 5 | Complete |
-| HARD-01 | Phase 6 | Pending |
-| HARD-02 | Phase 6 | Pending |
-| HARD-03 | Phase 6 | Pending |
-| LEDGER-01 | Phase 6 | Pending |
-| LEDGER-02 | Phase 6 | Pending |
-| LEDGER-03 | Phase 6 | Pending |
+| HARD-01 | Phase 6 | Complete |
+| HARD-02 | Phase 6 | Complete |
+| HARD-03 | Phase 6 | Complete |
+| LEDGER-01 | Phase 6 | Complete |
+| LEDGER-02 | Phase 6 | Complete |
+| LEDGER-03 | Phase 6 | Complete |
 | PROFIT-01 | Phase 7 | Pending |
 | PROFIT-02 | Phase 7 | Pending |
 | PROFIT-03 | Phase 7 | Pending |

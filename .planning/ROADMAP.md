@@ -11,7 +11,7 @@ Build a Dalamud plugin from scratch that connects to the Saddlebag Exchange API,
 - [x] **Phase 3: Scan Engine & Route Optimizer** - API call orchestration, result ranking, server routing (completed 2026-05-07)
 - [x] **Phase 4: Core UI** - DailyRouteWindow with route display, buy/list checkboxes, profit tally
 - [x] **Phase 5: Session Persistence** - JSON session store, scan caching, resume support
-- [ ] **Phase 6: Runtime Hardening & Ledger Foundation** - stabilize persistence/runtime behavior and introduce durable flip positions
+- [x] **Phase 6: Runtime Hardening & Ledger Foundation** - stabilize persistence/runtime behavior and introduce durable flip positions
 - [ ] **Phase 7: Manual Realized Profit Tracking** - mark items sold, capture sale price, compute item-level realized profit by buy date
 - [ ] **Phase 8: Profit History UI** - daily/weekly/monthly profit history, open positions, sold-item review
 - [ ] **Phase 9: Retainer/Gil Detection Spike** - determine what Dalamud can reliably read from retainers, gil totals, chat, or sale history
@@ -115,10 +115,10 @@ Plans:
   3. Runtime diagnostics are intentional for release builds, not broad temporary hooks
   4. Each routed item can be represented as a durable flip position tied to the buy date
   5. Existing source-validation scripts match the runtime-discovered API and workflow semantics
-**Plans**: TBD
+**Plans**: 1 plan
 
 Plans:
-- [ ] 06-01: Spec and plan runtime hardening plus ledger foundation
+- [x] 06-01: Implement runtime hardening plus ledger foundation
 
 ### Phase 7: Manual Realized Profit Tracking
 **Goal**: Let the player close positions manually when items sell and compute item-level realized profit
@@ -196,7 +196,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 | 3. Scan Engine & Route Optimizer | 2/2 | ✓ Complete | 2026-05-07 |
 | 4. Core UI | 9/9 | ✓ Complete | 2026-05-08 |
 | 5. Session Persistence | 1/1 | ✓ Complete | 2026-05-11 |
-| 6. Runtime Hardening & Ledger Foundation | 0/TBD | Not started | - |
+| 6. Runtime Hardening & Ledger Foundation | 1/1 | ✓ Complete | 2026-06-13 |
 | 7. Manual Realized Profit Tracking | 0/TBD | Not started | - |
 | 8. Profit History UI | 0/TBD | Not started | - |
 | 9. Retainer/Gil Detection Spike | 0/TBD | Not started | - |
