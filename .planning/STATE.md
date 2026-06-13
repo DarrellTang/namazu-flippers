@@ -2,37 +2,37 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-stopped_at: Phase 5 context gathered
-last_updated: "2026-05-11T21:30:17.621Z"
-last_activity: 2026-05-11 -- Phase 05 execution started
+status: completed
+stopped_at: Phase 6 SPEC written
+last_updated: "2026-06-13T05:14:40.390Z"
+last_activity: 2026-06-13 -- Roadmap reshaped after post-Phase-5 in-game usage and profit-tracking discussion
 progress:
-  total_phases: 7
-  completed_phases: 4
+  total_phases: 10
+  completed_phases: 5
   total_plans: 15
-  completed_plans: 14
-  percent: 93
+  completed_plans: 15
+  percent: 50
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-05-07)
+See: .planning/PROJECT.md (updated 2026-06-13)
 
-**Core value:** A single button gives you today's best arbitrage route. Follow it, buy, list, done in under 20 minutes. Every day.
-**Current focus:** Phase 05 — session-persistence
+**Core value:** A single button gives you today's best arbitrage route, then tracks which flips sold and how much realized profit they produced.
+**Current focus:** Phase 06 — runtime-hardening-ledger-foundation
 **Build model:** macOS local builds are not expected to compile without Dalamud SDK assemblies; use source validation locally and GitHub Actions as the authoritative compiler/package gate.
 
 ## Current Position
 
-Phase: 05 (session-persistence) — EXECUTING
-Plan: 1 of 1
-Next: 05 — Session Persistence (ready to plan)
-Status: Executing Phase 05
-Last activity: 2026-05-11 -- Phase 05 execution started
+Phase: 06 (runtime-hardening-ledger-foundation) — READY FOR DISCUSS/PLAN RECONCILIATION
+Plan: 0 of TBD
+Next: 06 — Runtime Hardening & Ledger Foundation (`$gsd-discuss-phase 6` to reconcile SPEC into context, then `$gsd-plan-phase 6`)
+Status: Phase 05 complete by artifacts; Phase 06 SPEC and context exist; reconcile before planning if following strict GSD order
+Last activity: 2026-06-13 -- Roadmap reshaped after post-Phase-5 in-game usage and profit-tracking discussion
 
-Progress: [██████████] 100%
+Progress: [████████████████████] 15/15 planned plans complete; next phases intentionally unplanned
 
 **Phase 1 deliverables:**
 
@@ -87,17 +87,23 @@ Progress: [██████████] 100%
 - 04-08: Settings + Rescan render on their OWN row (no SameLine after the bought/listed Text) so avail = ImGui.GetContentRegionAvail().X measures the FULL content region width — not the leftover after a partially-consumed row
 - 04-08: rescanWidth = 110f * ImGuiHelpers.GlobalScale and settingsWidth = 80f * ImGuiHelpers.GlobalScale — literal-pixel button widths multiplied by FFXIV UI scale so frames grow with scaled fonts; closes GAP-E1 (the user-visible mechanism that 04-07's correct-but-insufficient fix didn't address)
 - 04-08 lesson: when a UAT-round-N fix doesn't close the user-visible report on round N+1, re-derive the pixel arithmetic at the user's actual UI scale BEFORE attempting another math-only fix — round-N math correctness does not imply round-N causal sufficiency
+- Phase 05 completed by artifact count: one plan and one summary delivered session persistence, cache envelope schema v2, bought/listed hydration, and Mark All actions.
+- Post-Phase-5 in-game use produced builds 33-38 with one-off runtime corrections: success banner, diagnostic logging, OOS sentinel correction, local MinProfit/ROI enforcement, all-listed completion semantics, click-to-copy names, per-sale profit display, and ConfigureAwait(false).
+- Product direction changed after real usage: shortage predictor is deferred; the next value is a reliable flip-profit journal that tracks bought items, sold items, sale price, and realized profit by original buy date.
+- Profit tracking will be position-based rather than full accounting. Teleports, repairs, incidental purchases, and unrelated gil changes are accepted blind spots; item-level sale outcomes are the primary signal.
 
 ### Pending Todos
 
-None.
+- Phase 06 SPEC exists; context was gathered before SPEC, so strict GSD flow should reconcile context against the locked SPEC before planning.
+- Update or replace stale source-validation assertions in `tests/phase03_nyquist.sh` during Phase 06 hardening.
 
 ### Blockers/Concerns
 
-No implementation blockers. Local macOS compiler verification is intentionally replaced by source validation plus CI build verification.
+- Known Phase 05 review risks remain to be addressed before ledger work depends on persistence: scan-cache/session write race, Mark All during scan, stale ItemId hydration, disposed CTS/unobserved task noise, and missing `MinSalesPerDay` in cache fingerprint.
+- Local macOS compiler verification is intentionally replaced by source validation plus CI build verification.
 
 ## Session Continuity
 
-Last session: 2026-05-10T01:27:57.173Z
-Stopped at: Phase 5 context gathered
-Resume file: .planning/phases/05-session-persistence/05-CONTEXT.md
+Last session: 2026-06-13T05:14:40.379Z
+Stopped at: Phase 6 SPEC written
+Next command: `$gsd-discuss-phase 6`

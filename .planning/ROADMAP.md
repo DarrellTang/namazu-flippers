@@ -2,17 +2,20 @@
 
 ## Overview
 
-Build a Dalamud plugin from scratch that connects to the Saddlebag Exchange API, discovers daily cross-server arbitrage opportunities, and presents them in a route-optimized in-game UI. The project follows a dependency-driven build order: plugin shell → API layer → business logic → UI → persistence → polish.
+Build a Dalamud plugin from scratch that connects to the Saddlebag Exchange API, discovers daily cross-server arbitrage opportunities, presents them in a route-optimized in-game UI, and tracks whether those flips actually produced profit. The project follows a dependency-driven build order: plugin shell -> API layer -> business logic -> UI -> persistence -> runtime hardening -> profit ledger -> reconciliation.
 
 ## Phases
 
 - [x] **Phase 1: Plugin Shell & Configuration** - Dalamud project scaffold, manifest, config persistence
 - [x] **Phase 2: API Integration** - HTTP client, endpoint models, rate limiter (completed 2026-05-06)
 - [x] **Phase 3: Scan Engine & Route Optimizer** - API call orchestration, result ranking, server routing (completed 2026-05-07)
-- [ ] **Phase 4: Core UI** - DailyRouteWindow with route display, buy/list checkboxes, profit tally
-- [ ] **Phase 5: Session Persistence** - JSON session store, scan caching, resume support
-- [ ] **Phase 6: Optional Features** - Shortage predictor supplement, game integration hooks
-- [ ] **Phase 7: Polish & Ship** - Error handling, edge cases, testing, manifest submission prep
+- [x] **Phase 4: Core UI** - DailyRouteWindow with route display, buy/list checkboxes, profit tally
+- [x] **Phase 5: Session Persistence** - JSON session store, scan caching, resume support
+- [ ] **Phase 6: Runtime Hardening & Ledger Foundation** - stabilize persistence/runtime behavior and introduce durable flip positions
+- [ ] **Phase 7: Manual Realized Profit Tracking** - mark items sold, capture sale price, compute item-level realized profit by buy date
+- [ ] **Phase 8: Profit History UI** - daily/weekly/monthly profit history, open positions, sold-item review
+- [ ] **Phase 9: Retainer/Gil Detection Spike** - determine what Dalamud can reliably read from retainers, gil totals, chat, or sale history
+- [ ] **Phase 10: Assisted Reconciliation & Polish** - automate safe sale matching where possible and prepare release-quality UX
 
 ## Phase Details
 
@@ -102,40 +105,89 @@ Plans:
 Plans:
 - [x] 05-01-PLAN.md — Bundle SessionState POCO, schema v2 envelope, SaveSessionAsync, hydrate-on-load, save-on-toggle, Mark All row, phase05_nyquist.sh (SESS-01, SESS-02, SESS-03)
 
-### Phase 6: Optional Features
-**Goal**: Shortage predictor supplement and basic game integration hooks
+### Phase 6: Runtime Hardening & Ledger Foundation
+**Goal**: Make the current route workflow reliable under in-game usage and create durable flip-position records for future realized-profit tracking
 **Depends on**: Phase 5
-**Requirements**: OPT-01, OPT-02, OPT-03
+**Requirements**: HARD-01, HARD-02, HARD-03, LEDGER-01, LEDGER-02, LEDGER-03
 **Success Criteria** (what must be TRUE):
-  1. Shortage predictor toggle in config enables supplementary `/api/ffxiv/shortagefutures` query
-  2. Shortage items merge into route without duplicating scan results
-  3. Shortage thresholds are configurable
-**Plans**: 1 plan
+  1. Cache/session writes cannot race or corrupt `scan-cache.json`
+  2. UI actions during scans have deterministic behavior and cannot silently lose user state
+  3. Runtime diagnostics are intentional for release builds, not broad temporary hooks
+  4. Each routed item can be represented as a durable flip position tied to the buy date
+  5. Existing source-validation scripts match the runtime-discovered API and workflow semantics
+**Plans**: TBD
 
 Plans:
-- [ ] 06-01: Add shortage predictor supplement with configurable thresholds
+- [ ] 06-01: Spec and plan runtime hardening plus ledger foundation
 
-### Phase 7: Polish & Ship
-**Goal**: Production-ready quality: error handling, edge cases, cleanup, ship-ready manifest
+### Phase 7: Manual Realized Profit Tracking
+**Goal**: Let the player close positions manually when items sell and compute item-level realized profit
 **Depends on**: Phase 6
-**Requirements**: INTG-01, INTG-02 (optional hooks)
+**Requirements**: PROFIT-01, PROFIT-02, PROFIT-03, PROFIT-04
 **Success Criteria** (what must be TRUE):
-  1. All error states handled (API down, network failure, empty results, bad data)
-  2. Edge cases covered (no opportunities found, all items already bought, expired session)
-  3. Plugin manifest is complete and accurate for Dalamud repo submission
-  4. Code is clean, documented, and follows Dalamud plugin conventions
-  5. Market board hook detects market board presence (optional)
-  6. Server travel hook detects travel and advances route (optional)
-**Plans**: 2 plans
+  1. Bought/listed positions can be marked sold with an actual sale price
+  2. Realized profit is computed as sale price after market tax minus actual or planned buy price
+  3. Sold outcomes remain tied to the original buy date/session
+  4. Manual entry is fast enough to use after checking retainers
+**Plans**: TBD
 
 Plans:
-- [ ] 07-01: Error handling, edge cases, and cleanup pass
-- [ ] 07-02: Game integration hooks and manifest finalization
+- [ ] 07-01: Add sold-state workflow and realized-profit calculation
+
+### Phase 8: Profit History UI
+**Goal**: Show historical profit in a compact view that answers what sold, when it was bought, and how much it made
+**Depends on**: Phase 7
+**Requirements**: HIST-01, HIST-02, HIST-03, HIST-04
+**Success Criteria** (what must be TRUE):
+  1. Player can see today, 7-day, and 30-day realized profit
+  2. Player can review open positions that are bought/listed but not sold
+  3. Sold items are grouped or filterable by buy date
+  4. Projected vs realized profit is clearly separated
+**Plans**: TBD
+
+Plans:
+- [ ] 08-01: Build profit history and open-position views
+
+### Phase 9: Retainer/Gil Detection Spike
+**Goal**: Determine what profit-related data can be safely and reliably observed from the game runtime
+**Depends on**: Phase 8
+**Requirements**: AUTO-01, AUTO-02, AUTO-03
+**Success Criteria** (what must be TRUE):
+  1. Document whether Dalamud can read character gil and retainer gil totals reliably
+  2. Document whether retainer sale events/history can be observed and matched to open positions
+  3. Document blind spots such as teleport, repair, purchases, taxes, and ambiguous item matches
+  4. Produce a go/no-go recommendation for assisted reconciliation
+**Plans**: TBD
+
+Plans:
+- [ ] 09-01: Spike retainer/gil observability in a live Dalamud runtime
+
+### Phase 10: Assisted Reconciliation & Polish
+**Goal**: Use safe game-observed signals to reduce manual sale entry and prepare the plugin for release-quality use
+**Depends on**: Phase 9
+**Requirements**: AUTO-04, SHIP-01, SHIP-02, SHIP-03
+**Success Criteria** (what must be TRUE):
+  1. If reliable sale signals exist, sold positions can be suggested or auto-matched with confirmation
+  2. If only gil totals exist, daily net-worth snapshots are clearly labeled as approximate
+  3. Error states and edge cases are handled cleanly
+  4. Plugin manifest and release artifacts are ready for Dalamud repository submission
+**Plans**: TBD
+
+Plans:
+- [ ] 10-01: Assisted reconciliation and release polish
+
+### Backlog: Opportunity Expansion
+**Goal**: Add more opportunity sources only after the core route and profit-history loop is trustworthy
+**Requirements**: OPT-01, OPT-02, OPT-03
+**Deferred Ideas**:
+- Toggleable shortage-predictor supplement via `POST /api/ffxiv/shortagefutures`
+- Deduplicate shortage-predicted items against scan results
+- Add configurable shortage thresholds if the supplement proves useful
 
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
+Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -143,9 +195,12 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
 | 2. API Integration | 2/2 | ✓ Complete | 2026-05-06 |
 | 3. Scan Engine & Route Optimizer | 2/2 | ✓ Complete | 2026-05-07 |
 | 4. Core UI | 9/9 | ✓ Complete | 2026-05-08 |
-| 5. Session Persistence | 0/1 | Not started | - |
-| 6. Optional Features | 0/1 | Not started | - |
-| 7. Polish & Ship | 0/2 | Not started | - |
+| 5. Session Persistence | 1/1 | ✓ Complete | 2026-05-11 |
+| 6. Runtime Hardening & Ledger Foundation | 0/TBD | Not started | - |
+| 7. Manual Realized Profit Tracking | 0/TBD | Not started | - |
+| 8. Profit History UI | 0/TBD | Not started | - |
+| 9. Retainer/Gil Detection Spike | 0/TBD | Not started | - |
+| 10. Assisted Reconciliation & Polish | 0/TBD | Not started | - |
 
 ## Build Verification Policy
 
