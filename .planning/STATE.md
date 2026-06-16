@@ -2,37 +2,37 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: planning
-stopped_at: Phase 5 context gathered
-last_updated: "2026-05-10T01:27:57.178Z"
-last_activity: 2026-05-09 -- Phase 04 fully verified in-game (build 1.0.32.0)
+status: in_progress
+stopped_at: Phase 6 implemented and draft PR CI passed
+last_updated: "2026-06-13T05:59:00.000Z"
+last_activity: 2026-06-13 -- Phase 6 runtime hardening and ledger foundation implemented on draft PR #1
 progress:
-  total_phases: 7
-  completed_phases: 4
-  total_plans: 14
-  completed_plans: 14
-  percent: 100
+  total_phases: 10
+  completed_phases: 6
+  total_plans: 16
+  completed_plans: 16
+  percent: 60
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-05-07)
+See: .planning/PROJECT.md (updated 2026-06-13)
 
-**Core value:** A single button gives you today's best arbitrage route. Follow it, buy, list, done in under 20 minutes. Every day.
-**Current focus:** Phase 05 — session-persistence (ready to plan)
+**Core value:** A single button gives you today's best arbitrage route, then tracks which flips sold and how much realized profit they produced.
+**Current focus:** Phase 07 — manual-realized-profit-tracking
 **Build model:** macOS local builds are not expected to compile without Dalamud SDK assemblies; use source validation locally and GitHub Actions as the authoritative compiler/package gate.
 
 ## Current Position
 
-Phase: 04 (core-ui) — COMPLETE and confirmed in build 1.0.32.0
-Plan: All 9 phase-04 plans + 5 post-04 UAT-driven hotfixes shipped
-Next: 05 — Session Persistence (ready to plan)
-Status: Ready to plan Phase 05
-Last activity: 2026-05-09 -- Phase 04 fully verified in-game (build 1.0.32.0)
+Phase: 07 (manual-realized-profit-tracking) — READY FOR SPEC/PLAN
+Plan: 0 of TBD
+Next: 07 — Manual Realized Profit Tracking (`$gsd-spec-phase 7` or implement directly from the end-state contract)
+Status: Phase 06 implemented on `codex/tracking`; draft PR #1 is mergeable and GitHub Actions build passed
+Last activity: 2026-06-13 -- Phase 6 runtime hardening and ledger foundation implemented, validated, and pushed
 
-Progress: [██████████] 100%
+Progress: [████████████░░░░░░░░] 6/10 phases complete; next phases intentionally unplanned
 
 **Phase 1 deliverables:**
 
@@ -67,6 +67,7 @@ Progress: [██████████] 100%
 | Phase 04 P04-03 | 4min | 2 tasks | 1 files |
 | Phase 04 P04-07 | 2 min | 2 tasks | 2 files |
 | Phase 04 P04-08 | 4 min | 2 tasks | 2 files |
+| Phase 06 P06-01 | ~1 session | 1 bundled plan | 15 code/test files |
 
 ## Accumulated Context
 
@@ -87,17 +88,26 @@ Progress: [██████████] 100%
 - 04-08: Settings + Rescan render on their OWN row (no SameLine after the bought/listed Text) so avail = ImGui.GetContentRegionAvail().X measures the FULL content region width — not the leftover after a partially-consumed row
 - 04-08: rescanWidth = 110f * ImGuiHelpers.GlobalScale and settingsWidth = 80f * ImGuiHelpers.GlobalScale — literal-pixel button widths multiplied by FFXIV UI scale so frames grow with scaled fonts; closes GAP-E1 (the user-visible mechanism that 04-07's correct-but-insufficient fix didn't address)
 - 04-08 lesson: when a UAT-round-N fix doesn't close the user-visible report on round N+1, re-derive the pixel arithmetic at the user's actual UI scale BEFORE attempting another math-only fix — round-N math correctness does not imply round-N causal sufficiency
+- Phase 05 completed by artifact count: one plan and one summary delivered session persistence, cache envelope schema v2, bought/listed hydration, and Mark All actions.
+- Post-Phase-5 in-game use produced builds 33-38 with one-off runtime corrections: success banner, diagnostic logging, OOS sentinel correction, local MinProfit/ROI enforcement, all-listed completion semantics, click-to-copy names, per-sale profit display, and ConfigureAwait(false).
+- Product direction changed after real usage: shortage predictor is deferred; the next value is a reliable flip-profit journal that tracks bought items, sold items, sale price, and realized profit by original buy date.
+- Profit tracking will be position-based rather than full accounting. Teleports, repairs, incidental purchases, and unrelated gil changes are accepted blind spots; item-level sale outcomes are the primary signal.
+- Phase 06 implemented durable bought-lot storage in `flip-ledger.json` with schema versioning and backup-on-write, plus mark-bought confirmation and an open positions correction view.
+- Phase 06 kept automatic mutation below the automation ceiling: bought lots are created only from explicit user confirmation, and no sold-state or reconciliation automation exists yet.
+- Upstream UI alpha self-heal from main was retained during conflict resolution, but periodic draw heartbeat logging remains removed.
 
 ### Pending Todos
 
-None.
+- Phase 07 needs sold-state workflow design/implementation: actual sale price entry, close/partial-close behavior, and tax-adjusted realized profit.
+- Keep Phase 07 manual and confirmation-based; assisted reconciliation waits for Phase 9/10 observability.
 
 ### Blockers/Concerns
 
-No implementation blockers. Local macOS compiler verification is intentionally replaced by source validation plus CI build verification.
+- Phase 06 draft PR #1 should still get in-game UAT before merging because it changes route bought interactions and adds a durable ledger file.
+- Local macOS compiler verification is intentionally replaced by source validation plus CI build verification.
 
 ## Session Continuity
 
-Last session: 2026-05-10T01:27:57.173Z
-Stopped at: Phase 5 context gathered
-Resume file: .planning/phases/05-session-persistence/05-CONTEXT.md
+Last session: 2026-06-13T05:59:00.000Z
+Stopped at: Phase 6 implemented; draft PR #1 build passed
+Next command: `$gsd-spec-phase 7` or continue implementing Phase 7 manual realized-profit tracking

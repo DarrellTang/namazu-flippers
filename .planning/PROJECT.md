@@ -2,11 +2,11 @@
 
 ## What This Is
 
-A Dalamud plugin (XIV Launcher) for Final Fantasy XIV that automates daily cross-world market board arbitrage — named after the commerce-obsessed Namazu beast tribe. The player opens the plugin, gets a ranked list of 5–10 items to flip across servers, follows a route-optimized shopping list, and completes a 15–20 minute session for consistent daily gil profit. Designed for minimal effort with maximal consistent return — not max-ROI hunting.
+A Dalamud plugin (XIV Launcher) for Final Fantasy XIV that supports daily cross-world market board arbitrage — named after the commerce-obsessed Namazu beast tribe. The player opens the plugin, gets a ranked list of items to flip across servers, follows a route-optimized shopping list, lists those items through retainers, and later tracks which flips sold and how much realized profit they produced. Designed for minimal effort with measurable consistent return — not max-ROI hunting or full accounting.
 
 ## Core Value
 
-A single button gives you today's best arbitrage route. Follow it, buy, list, done in under 20 minutes. Every day.
+A single button gives you today's best arbitrage route. Follow it, buy, list, done in under 20 minutes. Then use the plugin as a lightweight flip journal so bought items, sold items, and realized profit are not tracked from memory.
 
 ## Requirements
 
@@ -16,18 +16,21 @@ A single button gives you today's best arbitrage route. Follow it, buy, list, do
 - CONF-01 through CONF-09: Full ConfigWindow UI for all 14 settings + home world prompt validated in Phase 4 (Discard flow fixed in 04-06 via `!isDirty` snapshot guard)
 - SCAN-01, SCAN-02, SCAN-03, SCAN-04: Scan engine, route optimizer, cache, and manual refresh wiring validated in Phase 3
 - UI-01 through UI-08: Core UI validated in Phase 4 — 8/8 must-haves verified after gap-closure (04-04 listed-checkbox + profit tally, 04-05 Settings/Rescan layout at 420px, 04-06 ConfigWindow Discard); 4 debug sessions resolved; UAT closed
+- SESS-01 through SESS-03: Session persistence delivered in Phase 5 with bought/listed state in the scan-cache envelope and Mark All actions
+- HARD-01 through HARD-03: Runtime hardening delivered in Phase 6 with shared cache write serialization, deterministic scan-time UI mutation behavior, and release-appropriate diagnostics
+- LEDGER-01 through LEDGER-03: Durable bought-lot ledger foundation delivered in Phase 6 with independent `flip-ledger.json` persistence and original buy-date/session trace
 
 ### Active
 
-- [ ] SESSION-01: Session state (route, bought/listed status, profit tally) persists locally in JSON
-- [ ] OPT-01: Optional shortage-predictor supplement via `/api/ffxiv/shortagefutures`
-- [ ] INTEG-01: Optional market board hook detects when player is at market board
-- [ ] INTEG-02: Optional server travel hook auto-advances route to current server
+- [ ] PROFIT-01: Manual sold-state and actual sale-price tracking
+- [ ] HIST-01: Historical realized-profit view
+- [ ] AUTO-01: Retainer/gil observability spike for assisted reconciliation
 
 ### Out of Scope
 
 - Undercut monitoring / re-listing alerts — items sell fast by design
-- Price history charts and trend analysis — not needed for daily-flip items
+- Full gil accounting across all income/expenses — teleport, repairs, incidental purchases, and unrelated rewards are accepted blind spots
+- Price history charts and broad trend analysis — not needed for daily-flip items
 - Multi-signal aggregation engine — `/api/scan` handles all signal fusion internally
 - Background scanning / polling every 5–15 minutes — one scan per session
 - Allagan Tools bridge integration — overkill for this scope
@@ -40,25 +43,25 @@ A single button gives you today's best arbitrage route. Follow it, buy, list, do
 
 - **Framework**: Dalamud plugin for XIV Launcher (C#, .NET)
 - **UI**: ImGui (ImGui.NET) via Dalamud's windowing system
-- **API**: Saddlebag Exchange REST API (`/api/scan` primary, `/api/ffxiv/shortagefutures` optional)
+- **API**: Saddlebag Exchange REST API (`/api/scan` primary; `/api/ffxiv/shortagefutures` deferred to backlog)
 - **Data source**: Universalis (crowdsourced market board data)
-- **Persistence**: Local JSON file for session state and scan cache
+- **Persistence**: Local JSON files for scan cache, session state, and durable flip positions
 - **Build verification**: GitHub Actions is the authoritative compiler/package gate. macOS local builds are source-validation only because `net10.0-windows` + `Dalamud.NET.Sdk` require a configured Dalamud SDK path.
 
 **Key technical decisions already made:**
 
 - Single `/api/scan` endpoint replaces a 3-step API pipeline (marketshare → bestdeals → rank)
 - `include_vendor=true` and `show_out_stock=true` flags maximize opportunity discovery
-- Scoring model: `expected_daily_profit = margin × sales_per_day` with OOS priority boost
-- No database needed — JSON file persistence is sufficient for session state + cache
+- Scoring model now distinguishes projected route value from realized profit. UI uses per-sale profit for the actual buy-one/list-one workflow while scan ranking can still consider velocity.
+- No database needed — JSON file persistence is sufficient for scan cache, session state, and a lightweight flip ledger
 
 **What "success" looks like for the player:**
-Login → open plugin → see today's route → travel to server → buy items → return home → list items → done. 15–20 minutes. Consistent daily profit measured in hundreds of thousands of gil, not theoretical millions that sit for weeks.
+Login -> open plugin -> see today's route -> travel to server -> buy items -> return home -> list items through retainers -> later mark sold items and see realized profit by buy date. 15-20 minutes for the route, with historical profit visible without relying on memory.
 
 ## Constraints
 
 - **Dalamud API**: Must target current stable Dalamud API version; plugin loads within XIV Launcher sandbox
-- **Saddlebag Rate Limits**: `/api/scan` has no Universalis warning (safe); shortage-predictor also safe. Still implement polite rate limiting.
+- **Saddlebag Rate Limits**: `/api/scan` has no Universalis warning (safe). Still implement polite rate limiting.
 - **.NET Version**: Current project targets `net10.0-windows` via `Dalamud.NET.Sdk/15.0.0`
 - **UI Framework**: ImGui via Dalamud's `PluginUI` / `WindowSystem` — no HTML/CSS, no WPF
 - **Distribution**: Plugin distributed via Dalamud plugin repository (requires manifest + approval)
@@ -79,6 +82,8 @@ Login → open plugin → see today's route → travel to server → buy items �
 | OOS priority built into scan params | `show_out_stock=true` surfaces zero-listing items without custom logic | Phase 3 |
 | Vendor items included by default | `include_vendor=true` catches NPC-purchased flips players overlook | Phase 3 |
 | CI is the authoritative build gate | Developer workspace is macOS; local compile lacks Dalamud SDK assemblies, while CI downloads Dalamud and packages releases | Phase 3 |
+| Profit tracking is position-based, not full accounting | User wants to know which bought items sold and what each made, while accepting incidental gil deltas as blind spots | Phase 6+ |
+| Shortage predictor moved to backlog | In-game use shows the current route works; the missing value is outcome tracking, not more opportunity sources | Phase 6+ |
 
 ---
-*Last updated: 2026-05-08 after Phase 4 gap-closure (04-04, 04-05, 04-06) — UAT gaps resolved, phase complete with 8/8 must-haves verified.*
+*Last updated: 2026-06-13 after Phase 6 added runtime hardening and durable bought-lot ledger foundations.*
