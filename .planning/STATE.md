@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: in_progress
-stopped_at: Phase 6 implemented and draft PR CI passed
-last_updated: "2026-06-13T05:59:00.000Z"
-last_activity: 2026-06-13 -- Phase 6 runtime hardening and ledger foundation implemented on draft PR #1
+stopped_at: Phase 7 implemented on stacked branch; local source validation passed
+last_updated: "2026-06-13T06:45:00.000Z"
+last_activity: 2026-06-13 -- Phase 7 manual realized-profit tracking implemented on stacked branch
 progress:
   total_phases: 10
-  completed_phases: 6
-  total_plans: 16
-  completed_plans: 16
-  percent: 60
+  completed_phases: 7
+  total_plans: 17
+  completed_plans: 17
+  percent: 70
 ---
 
 # Project State
@@ -21,18 +21,18 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-13)
 
 **Core value:** A single button gives you today's best arbitrage route, then tracks which flips sold and how much realized profit they produced.
-**Current focus:** Phase 07 — manual-realized-profit-tracking
+**Current focus:** Phase 08 — profit-history-ui
 **Build model:** macOS local builds are not expected to compile without Dalamud SDK assemblies; use source validation locally and GitHub Actions as the authoritative compiler/package gate.
 
 ## Current Position
 
-Phase: 07 (manual-realized-profit-tracking) — READY FOR SPEC/PLAN
+Phase: 08 (profit-history-ui) — READY FOR SPEC/PLAN
 Plan: 0 of TBD
-Next: 07 — Manual Realized Profit Tracking (`$gsd-spec-phase 7` or implement directly from the end-state contract)
-Status: Phase 06 implemented on `codex/tracking`; draft PR #1 is mergeable and GitHub Actions build passed
-Last activity: 2026-06-13 -- Phase 6 runtime hardening and ledger foundation implemented, validated, and pushed
+Next: 08 — Profit History UI (`$gsd-spec-phase 8` or implement directly from the end-state contract)
+Status: Phase 07 implemented on `codex/phase-7-manual-profit`; stacked on Phase 6 draft PR branch
+Last activity: 2026-06-13 -- Phase 7 manual realized-profit tracking implemented and source-validated
 
-Progress: [████████████░░░░░░░░] 6/10 phases complete; next phases intentionally unplanned
+Progress: [██████████████░░░░░░] 7/10 phases complete; next phases intentionally unplanned
 
 **Phase 1 deliverables:**
 
@@ -68,6 +68,7 @@ Progress: [████████████░░░░░░░░] 6/10 ph
 | Phase 04 P04-07 | 2 min | 2 tasks | 2 files |
 | Phase 04 P04-08 | 4 min | 2 tasks | 2 files |
 | Phase 06 P06-01 | ~1 session | 1 bundled plan | 15 code/test files |
+| Phase 07 P07-01 | ~1 session | 1 bundled plan | 8 code/test files |
 
 ## Accumulated Context
 
@@ -95,19 +96,22 @@ Progress: [████████████░░░░░░░░] 6/10 ph
 - Phase 06 implemented durable bought-lot storage in `flip-ledger.json` with schema versioning and backup-on-write, plus mark-bought confirmation and an open positions correction view.
 - Phase 06 kept automatic mutation below the automation ceiling: bought lots are created only from explicit user confirmation, and no sold-state or reconciliation automation exists yet.
 - Upstream UI alpha self-heal from main was retained during conflict resolution, but periodic draw heartbeat logging remains removed.
+- Phase 07 implemented manual sale recording from the open positions view. Sales capture quantity and actual unit sale price, compute after-tax realized profit, support partial closes, and remain tied to the original bought lot and route/session trace.
+- Phase 07 intentionally did not add game-observed reconciliation, automatic matching, or auto-closing behavior; those remain gated by Phase 9 live observability findings and the end-state automation ceiling.
 
 ### Pending Todos
 
-- Phase 07 needs sold-state workflow design/implementation: actual sale price entry, close/partial-close behavior, and tax-adjusted realized profit.
-- Keep Phase 07 manual and confirmation-based; assisted reconciliation waits for Phase 9/10 observability.
+- Phase 08 needs realized-profit history UI: today/7-day/30-day totals, open position review, and sold history grouped or filterable by original buy date.
+- Keep Phase 08 focused on display/review of the item-level ledger; assisted reconciliation waits for Phase 9/10 observability.
 
 ### Blockers/Concerns
 
 - Phase 06 draft PR #1 should still get in-game UAT before merging because it changes route bought interactions and adds a durable ledger file.
+- Phase 07 is stacked on the Phase 6 draft PR branch; create/merge after Phase 6 depending on PR review flow.
 - Local macOS compiler verification is intentionally replaced by source validation plus CI build verification.
 
 ## Session Continuity
 
-Last session: 2026-06-13T05:59:00.000Z
-Stopped at: Phase 6 implemented; draft PR #1 build passed
-Next command: `$gsd-spec-phase 7` or continue implementing Phase 7 manual realized-profit tracking
+Last session: 2026-06-13T06:45:00.000Z
+Stopped at: Phase 7 implemented; source validation passed; stacked PR branch ready to push
+Next command: `$gsd-spec-phase 8` or continue implementing Phase 8 profit history UI

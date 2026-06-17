@@ -28,6 +28,12 @@ public sealed class FlipPosition
 
     public FlipPositionStatus Status { get; set; } = FlipPositionStatus.Open;
 
+    public List<FlipSale> Sales { get; set; } = [];
+
+    public DateTimeOffset? LastSoldAtUtc { get; set; }
+
+    public int TotalRealizedProfit { get; set; }
+
     public DateTimeOffset RouteCreatedAtUtc { get; set; }
 
     public string RouteSessionId { get; set; } = "";

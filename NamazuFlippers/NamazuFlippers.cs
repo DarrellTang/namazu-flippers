@@ -173,6 +173,31 @@ public class NamazuFlippers : IDalamudPlugin
         }, scanCts.Token);
     }
 
+    public void QueuePositionSold(string positionId, int quantity, int actualUnitSalePrice, string notes)
+    {
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await ledgerStore.RecordSaleAsync(
+                    positionId,
+                    quantity,
+                    actualUnitSalePrice,
+                    notes,
+                    scanCts.Token).ConfigureAwait(false);
+                await RefreshOpenPositionsAsync(scanCts.Token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                // Plugin shutdown raced the ledger write.
+            }
+            catch (Exception ex)
+            {
+                log.Warning("/nflip: could not record sold lot: {Message}", ex.Message);
+            }
+        }, scanCts.Token);
+    }
+
     /// <summary>
     /// Queue a fire-and-forget save of the current bought/listed dictionaries to disk.
     /// Called from DailyRouteWindow checkbox handlers and Mark All buttons (D-04, D-05).

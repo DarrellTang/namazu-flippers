@@ -19,10 +19,10 @@ A single button gives you today's best arbitrage route. Follow it, buy, list, do
 - SESS-01 through SESS-03: Session persistence delivered in Phase 5 with bought/listed state in the scan-cache envelope and Mark All actions
 - HARD-01 through HARD-03: Runtime hardening delivered in Phase 6 with shared cache write serialization, deterministic scan-time UI mutation behavior, and release-appropriate diagnostics
 - LEDGER-01 through LEDGER-03: Durable bought-lot ledger foundation delivered in Phase 6 with independent `flip-ledger.json` persistence and original buy-date/session trace
+- PROFIT-01 through PROFIT-04: Manual realized-profit tracking delivered in Phase 7 with sold entry, actual sale price capture, tax-adjusted profit math, partial closes, and preserved buy-date/session trace
 
 ### Active
 
-- [ ] PROFIT-01: Manual sold-state and actual sale-price tracking
 - [ ] HIST-01: Historical realized-profit view
 - [ ] AUTO-01: Retainer/gil observability spike for assisted reconciliation
 
@@ -84,6 +84,7 @@ Login -> open plugin -> see today's route -> travel to server -> buy items -> re
 | CI is the authoritative build gate | Developer workspace is macOS; local compile lacks Dalamud SDK assemblies, while CI downloads Dalamud and packages releases | Phase 3 |
 | Profit tracking is position-based, not full accounting | User wants to know which bought items sold and what each made, while accepting incidental gil deltas as blind spots | Phase 6+ |
 | Shortage predictor moved to backlog | In-game use shows the current route works; the missing value is outcome tracking, not more opportunity sources | Phase 6+ |
+| Manual sale recording stays user-confirmed | Avoids incorrect ledger mutation before Phase 9 proves live-game observability is reliable | Phase 7 |
 
 ---
-*Last updated: 2026-06-13 after Phase 6 added runtime hardening and durable bought-lot ledger foundations.*
+*Last updated: 2026-06-13 after Phase 7 added manual sold-entry and realized-profit tracking.*
