@@ -12,10 +12,14 @@ public sealed class PositionsWindow : Window
     private readonly IPluginLog log;
     private readonly Dictionary<string, int> quantityInputs = new();
     private readonly Dictionary<string, int> unitPriceInputs = new();
+    private readonly Dictionary<string, int> soldQuantityInputs = new();
+    private readonly Dictionary<string, int> salePriceInputs = new();
 
     private string? pendingDeleteId;
     private string pendingDeleteName = "";
     private bool openDeleteConfirmation;
+    private FlipPosition? pendingSalePosition;
+    private bool openSaleConfirmation;
 
     public PositionsWindow(NamazuFlippers plugin, IPluginLog log)
         : base("Namazu Flippers — Open Positions", ImGuiWindowFlags.None)
@@ -46,6 +50,7 @@ public sealed class PositionsWindow : Window
         foreach (var position in positions)
             DrawPosition(position);
 
+        DrawSoldPopup();
         DrawDeletePopup();
     }
 
@@ -82,6 +87,15 @@ public sealed class PositionsWindow : Window
             }
 
             ImGui.SameLine();
+            if (ImGui.Button("Sold", new Vector2(90, 0)))
+            {
+                soldQuantityInputs[position.Id] = Math.Max(1, position.RemainingQuantity);
+                salePriceInputs[position.Id] = Math.Max(1, position.ExpectedUnitSellPrice);
+                pendingSalePosition = position;
+                openSaleConfirmation = true;
+            }
+
+            ImGui.SameLine();
             ImGui.PushStyleColor(ImGuiCol.Text, UiColors.ErrorRed);
             if (ImGui.Button("Delete", new Vector2(90, 0)))
             {
@@ -96,6 +110,65 @@ public sealed class PositionsWindow : Window
         finally
         {
             ImGui.PopID();
+        }
+    }
+
+    private void DrawSoldPopup()
+    {
+        if (openSaleConfirmation)
+        {
+            ImGui.OpenPopup("RecordSoldLot##positions");
+            openSaleConfirmation = false;
+        }
+
+        var saleOpen = true;
+        if (ImGui.BeginPopupModal("RecordSoldLot##positions", ref saleOpen, ImGuiWindowFlags.AlwaysAutoResize))
+        {
+            if (pendingSalePosition == null)
+            {
+                ImGui.CloseCurrentPopup();
+                ImGui.EndPopup();
+                return;
+            }
+
+            var position = pendingSalePosition;
+            ImGui.TextUnformatted(position.ItemName);
+            ImGui.TextDisabled($"Bought {position.BuyTimestampUtc.ToLocalTime():MMM d} • {position.RemainingQuantity} remaining");
+            ImGui.Spacing();
+
+            var soldQuantity = soldQuantityInputs[position.Id];
+            if (ImGui.InputInt("Sold qty", ref soldQuantity))
+                soldQuantityInputs[position.Id] = Math.Clamp(soldQuantity, 1, Math.Max(1, position.RemainingQuantity));
+
+            var salePrice = salePriceInputs[position.Id];
+            if (ImGui.InputInt("Unit sale", ref salePrice))
+                salePriceInputs[position.Id] = Math.Max(1, salePrice);
+
+            var netUnit = (int)Math.Floor(salePriceInputs[position.Id] * 0.95);
+            var unitProfit = netUnit - ResolveUnitBuyPrice(position);
+            var totalProfit = unitProfit * soldQuantityInputs[position.Id];
+            ImGui.TextDisabled($"After tax {netUnit:n0} • realized/unit {unitProfit:n0} • total {totalProfit:n0} gil");
+            ImGui.Spacing();
+
+            if (ImGui.Button("Record Sale", new Vector2(120, 0)))
+            {
+                plugin.QueuePositionSold(
+                    position.Id,
+                    soldQuantityInputs[position.Id],
+                    salePriceInputs[position.Id],
+                    notes: "");
+                pendingSalePosition = null;
+                ImGui.CloseCurrentPopup();
+            }
+
+            ImGui.SameLine();
+            if (ImGui.Button("Cancel", new Vector2(120, 0)))
+            {
+                pendingSalePosition = null;
+                ImGui.CloseCurrentPopup();
+            }
+
+            ImGui.EndPopup();
         }
     }
 
@@ -139,5 +212,19 @@ public sealed class PositionsWindow : Window
             quantityInputs[position.Id] = Math.Max(1, position.BoughtQuantity);
         if (!unitPriceInputs.ContainsKey(position.Id))
             unitPriceInputs[position.Id] = Math.Max(1, position.ActualUnitBuyPrice);
+        if (!soldQuantityInputs.ContainsKey(position.Id))
+            soldQuantityInputs[position.Id] = Math.Max(1, position.RemainingQuantity);
+        if (!salePriceInputs.ContainsKey(position.Id))
+            salePriceInputs[position.Id] = Math.Max(1, position.ExpectedUnitSellPrice);
+    }
+
+    private static int ResolveUnitBuyPrice(FlipPosition position)
+    {
+        if (position.ActualUnitBuyPrice > 0)
+            return position.ActualUnitBuyPrice;
+
+        var plannedUnitBuyPrice = (int)Math.Floor(position.ExpectedUnitSellPrice * 0.95)
+            - position.PlannedUnitProfit;
+        return Math.Max(1, plannedUnitBuyPrice);
     }
 }
