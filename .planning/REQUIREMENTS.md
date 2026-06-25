@@ -76,10 +76,10 @@
 
 ### Profit History
 
-- [ ] **HIST-01**: User can view realized profit for today, 7 days, and 30 days
-- [ ] **HIST-02**: User can review open positions that are bought/listed but not sold
-- [ ] **HIST-03**: User can review sold items by buy date/session
-- [ ] **HIST-04**: UI clearly separates projected profit from realized profit
+- [x] **HIST-01**: User can view realized profit for today, 7 days, and 30 days
+- [x] **HIST-02**: User can review open positions that are bought/listed but not sold
+- [x] **HIST-03**: User can review sold items by buy date/session
+- [x] **HIST-04**: UI clearly separates projected profit from realized profit
 
 ### Game Integration
 
@@ -159,10 +159,10 @@
 | PROFIT-02 | Phase 7 | Complete |
 | PROFIT-03 | Phase 7 | Complete |
 | PROFIT-04 | Phase 7 | Complete |
-| HIST-01 | Phase 8 | Pending |
-| HIST-02 | Phase 8 | Pending |
-| HIST-03 | Phase 8 | Pending |
-| HIST-04 | Phase 8 | Pending |
+| HIST-01 | Phase 8 | Complete |
+| HIST-02 | Phase 8 | Complete |
+| HIST-03 | Phase 8 | Complete |
+| HIST-04 | Phase 8 | Complete |
 | AUTO-01 | Phase 9 | Pending |
 | AUTO-02 | Phase 9 | Pending |
 | AUTO-03 | Phase 9 | Pending |
@@ -183,4 +183,4 @@
 
 ---
 *Requirements defined: 2026-05-04*
-*Last updated: 2026-06-13 — Phase 7 manual realized-profit tracking implemented. Open bought lots can be marked sold with actual sale price, tax-adjusted realized profit, partial-close behavior, and preserved buy-date/session trace.*
+*Last updated: 2026-06-13 — Phase 8 profit history UI implemented. Realized profit totals, open positions, and sold history grouped by original buy date are available from the item-level ledger.*
