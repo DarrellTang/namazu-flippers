@@ -56,9 +56,9 @@ terminal state. Do not block-wait between ticks.
    - If open-thread count rose two rounds running, set `drl:blocked` + stop.
 
 4. **Reschedule** (only if not converged/blocked):
-   `ScheduleWakeup(delaySeconds≈600, prompt="/review-loop $1")`. Pick the delay by
-   how fast Pi reviews — 600s is a sane default; tighten to ~270s if rounds are
-   fast (stays inside the prompt-cache window).
+   `ScheduleWakeup(delaySeconds≈300, prompt="/review-loop $1")`. Default cadence is
+   **5 minutes (300s)**. Drop to ~270s if you want to stay inside the prompt-cache
+   window; raise toward 600s only if Pi reviews are consistently slow.
 
 ## Notes
 - Never set `drl:converged` yourself — that is the Reviewer's call.
