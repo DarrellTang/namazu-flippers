@@ -50,6 +50,18 @@ it sleeps. If it is, it works, flips the label, updates the status comment, slee
 **Convergence is the Reviewer's call.** Builder never sets `converged`. When the
 Reviewer approves, it verifies the done-gates and sets `converged` itself.
 
+### Reviewer-internal subagents
+
+The Reviewer may use fresh-context, read-only subagents to conserve the parent context
+window on broad PRs. These helpers are internal to the Reviewer and are not extra DRL
+actors:
+
+- They inspect the PR/diff/files directly and return evidence-backed findings.
+- They may not post GitHub comments, submit reviews, update labels, update the status
+  comment, approve, request changes, or decide convergence.
+- The parent Reviewer synthesizes their output, verifies actionable findings, applies the
+  scope lock, and performs all PR mutations.
+
 ---
 
 ## Definition of done (objective gates — ALL must hold)

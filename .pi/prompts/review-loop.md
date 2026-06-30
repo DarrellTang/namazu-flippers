@@ -14,6 +14,31 @@ PR under loop: **$1**
 Run the loop below: each tick read the label, act only on your turn, then sleep
 ~5–10 min and tick again until a terminal state (`drl:converged` / `drl:blocked`).
 
+## Context conservation
+
+For broad PRs, conserve the parent context by delegating review reading to fresh-context
+subagents while keeping final authority in this Reviewer session.
+
+- Before launching subagents, run `subagent({ action: "list" })` and use only available,
+  non-disabled agents.
+- Use fresh-context, read-only `reviewer` subagents for large diffs, grouped by acceptance
+  criteria or technical area. Prefer `outputMode: "file-only"` for long findings.
+- Subagents must inspect the PR/diff/files directly and return evidence-backed findings with
+  file/line references, criterion IDs, severity, and whether the issue is actionable.
+- Subagents must not post GitHub comments, submit reviews, edit labels, update the status
+  comment, approve, request changes, or decide convergence.
+- The parent Reviewer synthesizes subagent output, drops duplicates/non-blockers/out-of-scope
+  ideas, performs the final done-gate check, and is the only actor that writes to the PR.
+- For small PRs, skip subagents and review directly.
+
+Suggested fanout for large reviews:
+
+```text
+1. Acceptance mapping reviewer — criteria 1-N against implementation and tests.
+2. Tests/CI reviewer — named acceptance tests, build workflow wiring, status checks.
+3. Scope/standards reviewer — repo conventions, regressions, and scope creep.
+```
+
 ## One tick
 
 1. **Read state:** `gh pr view $1 --json labels,statusCheckRollup,reviewDecision,url`
@@ -25,11 +50,15 @@ Run the loop below: each tick read the label, act only on your turn, then sleep
      `gh pr checks $1`. Then:
      a. `gh pr diff $1` and review the **full current diff** against `ACCEPTANCE.md`
         (every numbered criterion) and the repo's standards. Review statelessly each
-        round — don't rely on remembering prior rounds.
-     b. Post findings as inline review comments (`gh api repos/{owner}/{repo}/pulls/$1/comments`
+        round — don't rely on remembering prior rounds. Use the context-conservation
+        fanout above when the diff is large enough that reading everything in the parent
+        would crowd out the final synthesis.
+     b. If subagents were used, read only their concise/file-only outputs needed for
+        synthesis, then independently verify any finding before posting it.
+     c. Post findings as inline review comments (`gh api repos/{owner}/{repo}/pulls/$1/comments`
         or `gh pr review`). Be specific and actionable; cite the criterion or standard
         each finding violates.
-     c. **Verdict:**
+     d. **Verdict:**
         - Any actionable finding → `gh pr review $1 --request-changes`, update the
           status comment, flip label: remove `drl:needs-review`, add `drl:changes-requested`.
         - **Zero new actionable findings AND all 5 done-gates pass** (CI green ·
