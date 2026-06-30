@@ -77,6 +77,20 @@ public sealed class ScanEngine
         else if (cacheStore != null)
         {
             var staleCache = await cacheStore.LoadAnyAsync(ct).ConfigureAwait(false);
+            // Only the refresh-failure fallback path reaches LoadAnyAsync, which (unlike the
+            // valid-cache path) does not vet the schema version. A pre-v3 envelope lacks the
+            // capital-efficiency / Kelly-quantity / absorption fields, so serving its DerivedResult
+            // would silently misread the old shape (criterion 11). Treat any non-current schema as
+            // no usable cache and surface the refresh error instead.
+            if (staleCache != null && staleCache.SchemaVersion != ScanCacheEnvelope.CurrentSchemaVersion)
+            {
+                log.Warning(
+                    "/nflip: ignoring stale scan cache with schema v{Version} (current v{Current}); not serving it.",
+                    staleCache.SchemaVersion,
+                    ScanCacheEnvelope.CurrentSchemaVersion);
+                staleCache = null;
+            }
+
             if (staleCache != null)
             {
                 staleCache.DerivedResult.Status = ScanEngineStatus.UsingStaleCache;
@@ -154,9 +168,12 @@ public sealed class ScanEngine
             // (depth = 0, PriceConfidence = 1) when Universalis is disabled or unavailable.
             var warnings = await EnrichAndScoreAsync(opportunities, ct).ConfigureAwait(false);
 
-            // Final ranking key = CapitalEfficiency × SellConfidence × PriceConfidence (criterion 3).
+            // Final ranking key = CapitalEfficiency × SellConfidence × PriceConfidence (criterion 3),
+            // tiebroken by raw velocity, then ExpectedDailyProfit, then ascending CheapestPrice
+            // (criterion 1).
             opportunities = opportunities
                 .OrderByDescending(opportunity => opportunity.FinalRank)
+                .ThenByDescending(opportunity => opportunity.SalesPerDay)
                 .ThenByDescending(opportunity => opportunity.ExpectedDailyProfit)
                 .ThenBy(opportunity => opportunity.PurchasePrice)
                 .ToList();

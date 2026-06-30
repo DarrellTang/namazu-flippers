@@ -86,6 +86,8 @@ echo "Criterion 1: capital-efficiency ranking replaces the absolute-profit prima
 require_all_patterns "NamazuFlippers/Core/ScanEngine.cs" "ScanEngine ranks by capital efficiency then final rank" \
   "OrderByDescending\(opportunity => opportunity\.CapitalEfficiency\)" \
   "OrderByDescending\(opportunity => opportunity\.FinalRank\)" \
+  "ThenByDescending\(opportunity => opportunity\.SalesPerDay\)" \
+  "ThenByDescending\(opportunity => opportunity\.ExpectedDailyProfit\)" \
   "ThenBy\(opportunity => opportunity\.PurchasePrice\)"
 require_absent_pattern "NamazuFlippers/Core/ScanEngine.cs" "OrderByDescending\(item => item\.ExpectedDailyProfit\)" \
   "old ExpectedDailyProfit primary sort is gone"

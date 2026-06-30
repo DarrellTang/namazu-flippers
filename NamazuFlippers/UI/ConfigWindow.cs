@@ -361,6 +361,11 @@ public class ConfigWindow : Window
             MaxServersToVisit       = source.MaxServersToVisit,
             CacheDurationHours      = source.CacheDurationHours,
             EnableShortagePredictor = source.EnableShortagePredictor,
+            HoldingWindowDays          = source.HoldingWindowDays,
+            KellyFraction              = source.KellyFraction,
+            EnableUniversalis          = source.EnableUniversalis,
+            PriceCorroborationThreshold = source.PriceCorroborationThreshold,
+            MinRecentSalesToJudge      = source.MinRecentSalesToJudge,
         };
     }
 
@@ -383,6 +388,11 @@ public class ConfigWindow : Window
         target.MaxServersToVisit       = snapshot.MaxServersToVisit;
         target.CacheDurationHours      = snapshot.CacheDurationHours;
         target.EnableShortagePredictor = snapshot.EnableShortagePredictor;
+        target.HoldingWindowDays          = snapshot.HoldingWindowDays;
+        target.KellyFraction              = snapshot.KellyFraction;
+        target.EnableUniversalis          = snapshot.EnableUniversalis;
+        target.PriceCorroborationThreshold = snapshot.PriceCorroborationThreshold;
+        target.MinRecentSalesToJudge      = snapshot.MinRecentSalesToJudge;
     }
 
     private static void RestoreDefaults(Configuration target)
@@ -404,5 +414,10 @@ public class ConfigWindow : Window
         target.MaxServersToVisit       = 10;
         target.CacheDurationHours      = 4;
         target.EnableShortagePredictor = false;
+        target.HoldingWindowDays          = 7;
+        target.KellyFraction              = 0.5;
+        target.EnableUniversalis          = true;
+        target.PriceCorroborationThreshold = 0.9;
+        target.MinRecentSalesToJudge      = 3;
     }
 }

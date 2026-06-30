@@ -141,25 +141,27 @@ public class KellySizerTests
     }
 
     [Fact]
-    public void AssignQuantities_NoBudgetCap_BoundedOnlyByAbsorption()
+    public void AssignQuantities_ZeroBudgetPool_DeploysNothing()
     {
+        // MaxBudgetPerSession is the Kelly pool (criterion 6); a zero pool is no capital, so the
+        // recommended quantity is 0 even when absorption would otherwise allow a position.
         var opp = MakeOpportunity(profitPerUnit: 5, purchasePrice: 10, absorptionCap: 37.6);
         var ranked = new[] { opp };
 
         KellySizer.AssignQuantities(ranked, budgetPool: 0, kellyFraction: 0.5);
 
-        Assert.Equal(37, opp.RecommendedQuantity);
+        Assert.Equal(0, opp.RecommendedQuantity);
     }
 
     [Fact]
-    public void AssignQuantities_NegativeBudgetPool_TreatedAsNoCap_BoundedOnlyByAbsorption()
+    public void AssignQuantities_NegativeBudgetPool_DeploysNothing()
     {
         var opp = MakeOpportunity(profitPerUnit: 5, purchasePrice: 10, absorptionCap: 37.6);
         var ranked = new[] { opp };
 
         KellySizer.AssignQuantities(ranked, budgetPool: -100, kellyFraction: 0.5);
 
-        Assert.Equal(37, opp.RecommendedQuantity);
+        Assert.Equal(0, opp.RecommendedQuantity);
     }
 
     // === TotalDeployedGil / TotalAbsorptionCeilingGil ===

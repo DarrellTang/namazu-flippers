@@ -19,8 +19,8 @@ public static class KellySizer
     /// PriceConfidence = 1) falls out automatically — sizing becomes velocity-only.
     /// </summary>
     /// <param name="ranked">Opportunities in rank order; mutated with recommended quantities.</param>
-    /// <param name="budgetPool">Kelly capital pool in gil (MaxBudgetPerSession). ≤ 0 ⇒ no gil cap;
-    /// quantities are bounded only by absorption.</param>
+    /// <param name="budgetPool">Kelly capital pool in gil (MaxBudgetPerSession). ≤ 0 ⇒ no capital,
+    /// so every recommended quantity is 0.</param>
     /// <param name="kellyFraction">Fraction of full Kelly to deploy (0.5 = half-Kelly).</param>
     public static void AssignQuantities(
         IReadOnlyList<RankedOpportunity> ranked,
@@ -32,8 +32,16 @@ public static class KellySizer
         if (ranked.Count == 0)
             return;
 
+        // MaxBudgetPerSession is the Kelly capital pool (criterion 6). A non-positive pool is no
+        // capital, so nothing deploys — every position is bounded by the (zero) remaining budget.
+        if (budgetPool <= 0)
+        {
+            foreach (var opportunity in ranked)
+                opportunity.RecommendedQuantity = 0;
+            return;
+        }
+
         var fraction = Math.Max(0.0, kellyFraction);
-        var hasBudgetCap = budgetPool > 0;
 
         var weights = new double[ranked.Count];
         var totalWeight = 0.0;
@@ -43,7 +51,7 @@ public static class KellySizer
             totalWeight += weights[i];
         }
 
-        var remainingBudget = hasBudgetCap ? budgetPool : long.MaxValue;
+        var remainingBudget = budgetPool;
 
         for (var i = 0; i < ranked.Count; i++)
         {
@@ -59,13 +67,9 @@ public static class KellySizer
             else
             {
                 // Kelly gil target for this position: its weight share of the pool, at the Kelly
-                // fraction. With no budget cap, gil is unconstrained and absorption alone bounds qty.
-                var quantityByGil = absorptionUnits;
-                if (hasBudgetCap)
-                {
-                    var targetGil = fraction * (weights[i] / totalWeight) * budgetPool;
-                    quantityByGil = (long)Math.Floor(targetGil / price);
-                }
+                // fraction. Converted to whole units, then bounded by absorption and the budget.
+                var targetGil = fraction * (weights[i] / totalWeight) * budgetPool;
+                var quantityByGil = (long)Math.Floor(targetGil / price);
 
                 quantity = Math.Min(quantityByGil, absorptionUnits);
 
@@ -77,7 +81,7 @@ public static class KellySizer
 
             opportunity.RecommendedQuantity = (int)Math.Min(quantity, int.MaxValue);
 
-            if (hasBudgetCap && quantity > 0)
+            if (quantity > 0)
             {
                 var spent = quantity * (long)price;
                 remainingBudget = Math.Max(0, remainingBudget - spent);
