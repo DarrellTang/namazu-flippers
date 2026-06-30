@@ -11,7 +11,8 @@ obj/
 
 # Tool output
 .firecrawl/
-.pi/
+.pi/*
+!.pi/prompts/
 .claude/audio/
 
 # IDE
