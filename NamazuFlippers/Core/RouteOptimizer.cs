@@ -4,8 +4,6 @@ namespace NamazuFlippers.Core;
 
 public sealed class RouteOptimizer
 {
-    private const double FrictionTieBreakWindow = 0.20;
-
     public IReadOnlyList<RouteStop> Optimize(
         IReadOnlyList<RankedOpportunity> opportunities,
         Configuration configuration)
@@ -15,35 +13,21 @@ public sealed class RouteOptimizer
 
         var stopLimit = Math.Max(1, configuration.MaxServersToVisit);
         var itemLimit = Math.Max(1, configuration.MaxItemsPerSession);
-        var budget = configuration.MaxBudgetPerSession;
 
-        // Apply the cumulative budget cap BEFORE grouping into stops: walk items in
-        // profit-rank order and keep each one whose CheapestPrice fits the remaining
-        // budget. Items above the remaining budget are skipped — keep filling with
-        // cheaper-but-profitable items rather than stopping at the first overage.
-        // Set MaxBudgetPerSession to 0 to disable the cap entirely.
-        IReadOnlyList<RankedOpportunity> withinBudget;
-        if (budget <= 0)
-        {
-            withinBudget = opportunities;
-        }
-        else
-        {
-            var kept = new List<RankedOpportunity>(opportunities.Count);
-            long spent = 0;
-            foreach (var item in opportunities)
-            {
-                var remaining = budget - spent;
-                if (item.PurchasePrice <= remaining)
-                {
-                    kept.Add(item);
-                    spent += item.PurchasePrice;
-                }
-            }
-            withinBudget = kept;
-        }
+        // Kelly sizing (ScanEngine) now owns the budget; the route no longer re-applies a cap
+        // (criterion 12). It just groups the sized (item, quantity) set into one stop per purchase
+        // world and minimizes hops. Items Kelly sized to zero have nothing to buy, so they're
+        // dropped before grouping.
+        var sized = opportunities
+            .Where(opportunity => opportunity.RecommendedQuantity > 0)
+            .ToList();
 
-        var selectedStops = withinBudget
+        if (sized.Count == 0)
+            return [];
+
+        // World travel is treated as free (criterion 12) — stops are ordered purely by value, so
+        // there is no travel-cost term in the selection.
+        var selectedStops = sized
             .GroupBy(opportunity => opportunity.PurchaseSource, StringComparer.OrdinalIgnoreCase)
             .Select(group => CreateRouteStop(group, configuration.HomeWorld))
             .OrderBy(stop => stop, new RouteStopComparer())
@@ -58,7 +42,8 @@ public sealed class RouteOptimizer
         string homeWorld)
     {
         var orderedItems = group
-            .OrderByDescending(item => item.ExpectedDailyProfit)
+            .OrderByDescending(item => item.FinalRank)
+            .ThenByDescending(item => item.ExpectedDailyProfit)
             .ThenByDescending(item => item.SalesPerDay)
             .ThenBy(item => item.PurchasePrice)
             .ToList();
@@ -108,6 +93,8 @@ public sealed class RouteOptimizer
         return trimmedStops;
     }
 
+    // World travel is free (criterion 12), so stops are ordered purely by value with a stable
+    // name tiebreak — no travel-friction term enters the selection.
     private sealed class RouteStopComparer : IComparer<RouteStop>
     {
         public int Compare(RouteStop? x, RouteStop? y)
@@ -119,29 +106,11 @@ public sealed class RouteOptimizer
             if (y == null)
                 return -1;
 
-            var higherValue = Math.Max(x.TotalExpectedDailyProfit, y.TotalExpectedDailyProfit);
-            var lowerValue = Math.Min(x.TotalExpectedDailyProfit, y.TotalExpectedDailyProfit);
-
-            if (IsWithinFrictionTieBreakWindow(higherValue, lowerValue))
-            {
-                var frictionCompare = x.TravelFriction.CompareTo(y.TravelFriction);
-                if (frictionCompare != 0)
-                    return frictionCompare;
-            }
-
             var valueCompare = y.TotalExpectedDailyProfit.CompareTo(x.TotalExpectedDailyProfit);
             if (valueCompare != 0)
                 return valueCompare;
 
             return string.Compare(x.PurchaseSource, y.PurchaseSource, StringComparison.OrdinalIgnoreCase);
         }
-    }
-
-    private static bool IsWithinFrictionTieBreakWindow(int higherValue, int lowerValue)
-    {
-        if (higherValue <= 0)
-            return true;
-
-        return lowerValue >= higherValue * (1 - FrictionTieBreakWindow);
     }
 }

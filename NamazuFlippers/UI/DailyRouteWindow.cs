@@ -262,6 +262,15 @@ public class DailyRouteWindow : Window
         ImGui.PopStyleColor();
 
         ImGui.TextColored(GilGold, $"Profit: {listedProfit:n0} / {totalProfit:n0} gil");
+
+        // Session deployment summary (criterion 9): gil the recommended quantities deploy, versus the
+        // Kelly budget pool, versus what the home market could absorb. Deployed < budget is correct
+        // when absorption is the binding constraint (ADR-0002), so all three are shown side by side.
+        var deployedGil = KellySizer.TotalDeployedGil(routeItems);
+        var absorptionCeilingGil = KellySizer.TotalAbsorptionCeilingGil(routeItems);
+        var budgetPool = plugin.Configuration.MaxBudgetPerSession;
+        ImGui.TextColored(GilGold,
+            $"Deployed: {deployedGil:n0} / budget {budgetPool:n0} / absorption ceiling {absorptionCeilingGil:n0} gil");
     }
 
     private void DrawRouteStop(RouteStop stop, ScanEngineResult result)
@@ -366,6 +375,12 @@ public class DailyRouteWindow : Window
                     ImGui.Text($"Avg {item.SalesPerDay:F2} sales/day");
                     if (item.SalesPerDay > 0)
                         ImGui.Text($"~{1.0 / item.SalesPerDay:F1} days between sales");
+                    // Secondary signals (criterion 9): competition depth + the confidence multipliers
+                    // that discounted this item's rank and size. Kept out of the inline row.
+                    ImGui.Text($"Home listings (depth): {item.Depth}");
+                    ImGui.Text($"Sell confidence: {item.SellConfidence:P0}");
+                    ImGui.Text($"Price confidence: {item.PriceConfidence:P0}");
+                    ImGui.Text($"Recommended qty: {item.RecommendedQuantity:n0} (absorption {Math.Floor(item.AbsorptionCap):n0})");
                     ImGui.Separator();
                     ImGui.TextDisabled("Click to copy name");
                     ImGui.EndTooltip();
@@ -384,6 +399,12 @@ public class DailyRouteWindow : Window
 
                 ImGui.SameLine();
                 ImGui.TextColored(PurchaseCyan, $"Buy: {item.PurchasePrice:n0}");
+
+                // Recommended absorption-capped half-Kelly quantity (criterion 9). This is the
+                // primary sizing signal — depth and sell confidence stay in the tooltip below.
+                ImGui.SameLine();
+                ImGui.TextColored(SuccessGreen, $"Qty {item.RecommendedQuantity:n0}");
+
                 ImGui.SameLine();
                 ImGui.TextColored(GilGold, $"+{ProfitPerSale(item):n0}");
 

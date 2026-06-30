@@ -5,11 +5,15 @@ on:
     branches: [main]
     paths:
       - 'NamazuFlippers/**'
+      - 'NamazuFlippers.Tests/**'
+      - 'tests/**'
       - '.github/workflows/**'
   pull_request:
     branches: [main]
     paths:
       - 'NamazuFlippers/**'
+      - 'NamazuFlippers.Tests/**'
+      - 'tests/**'
       - '.github/workflows/**'
   workflow_dispatch:
 
@@ -52,6 +56,14 @@ jobs:
 
       - name: Build
         run: dotnet build --no-restore --configuration Release --nologo
+
+      - name: Run unit tests (pure math)
+        working-directory: ${{ github.workspace }}
+        run: dotnet test NamazuFlippers.Tests/NamazuFlippers.Tests.csproj --configuration Release --nologo
+
+      - name: Run nyquist source validation
+        working-directory: ${{ github.workspace }}
+        run: bash tests/phase09_nyquist.sh
 
       - name: Package plugin
         run: |
