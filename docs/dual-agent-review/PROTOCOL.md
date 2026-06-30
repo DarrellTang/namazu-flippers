@@ -114,13 +114,19 @@ gh label create drl:converged         -c '#5319e7' -d 'DRL: done-gates pass, hum
 gh label create drl:blocked           -c '#b60205' -d 'DRL: guard tripped / needs human'   || true
 ```
 
+Pi must also **trust this project** the first time it loads `.pi/` (it prompts;
+the decision is saved to `~/.pi/agent/trust.json`). Both agents share the same
+`/review-loop` command name — Claude's is `.claude/commands/review-loop.md`
+(Builder), Pi's is `.pi/prompts/review-loop.md` (Reviewer).
+
 ## Per-PR kickoff
 
 1. **Phase 0 (Q&A):** Builder interviews the owner, writes `ACCEPTANCE.md`, commits it.
 2. **Phase 1 (build):** Builder implements + writes the acceptance tests, wires them
    into CI, opens the PR with `ACCEPTANCE.md` linked in the body, sets `drl:building`.
-3. **Phase 2 (loop):** Builder runs `/review-loop <PR>`; Reviewer runs its
-   equivalent (`PI-REVIEWER.md`). They converge via the state machine above.
+3. **Phase 2 (loop):** Builder runs `/review-loop <PR>` in Claude Code; Reviewer
+   runs `/review-loop <PR>` in Pi (the prompt template at `.pi/prompts/review-loop.md`).
+   They converge via the state machine above.
 4. **Phase 3 (merge):** Human merges on `drl:converged`.
 
 ## Useful gh snippets
