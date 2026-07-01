@@ -125,7 +125,7 @@ public class ConfigWindow : Window
             }
 
             var budget = plugin.Configuration.MaxBudgetPerSession;
-            if (ImGui.InputInt("Budget Cap (gil)", ref budget))
+            if (ImGui.InputInt("Kelly Budget Pool (gil)", ref budget))
             {
                 plugin.Configuration.MaxBudgetPerSession = Math.Max(0, budget);
                 isDirty = true;
@@ -133,7 +133,9 @@ public class ConfigWindow : Window
             if (ImGui.IsItemHovered())
             {
                 ImGui.BeginTooltip();
-                ImGui.Text("Total gil to spend across the whole route. Set to 0 to disable.");
+                ImGui.Text("Capital pool the half-Kelly sizer allocates across the route.");
+                ImGui.Text("Recommended quantities are sized from this pool, then capped by each");
+                ImGui.Text("item's market absorption. 0 = no capital, so nothing is recommended.");
                 ImGui.EndTooltip();
             }
         }
@@ -361,6 +363,11 @@ public class ConfigWindow : Window
             MaxServersToVisit       = source.MaxServersToVisit,
             CacheDurationHours      = source.CacheDurationHours,
             EnableShortagePredictor = source.EnableShortagePredictor,
+            HoldingWindowDays          = source.HoldingWindowDays,
+            KellyFraction              = source.KellyFraction,
+            EnableUniversalis          = source.EnableUniversalis,
+            PriceCorroborationThreshold = source.PriceCorroborationThreshold,
+            MinRecentSalesToJudge      = source.MinRecentSalesToJudge,
         };
     }
 
@@ -383,6 +390,11 @@ public class ConfigWindow : Window
         target.MaxServersToVisit       = snapshot.MaxServersToVisit;
         target.CacheDurationHours      = snapshot.CacheDurationHours;
         target.EnableShortagePredictor = snapshot.EnableShortagePredictor;
+        target.HoldingWindowDays          = snapshot.HoldingWindowDays;
+        target.KellyFraction              = snapshot.KellyFraction;
+        target.EnableUniversalis          = snapshot.EnableUniversalis;
+        target.PriceCorroborationThreshold = snapshot.PriceCorroborationThreshold;
+        target.MinRecentSalesToJudge      = snapshot.MinRecentSalesToJudge;
     }
 
     private static void RestoreDefaults(Configuration target)
@@ -404,5 +416,10 @@ public class ConfigWindow : Window
         target.MaxServersToVisit       = 10;
         target.CacheDurationHours      = 4;
         target.EnableShortagePredictor = false;
+        target.HoldingWindowDays          = 7;
+        target.KellyFraction              = 0.5;
+        target.EnableUniversalis          = true;
+        target.PriceCorroborationThreshold = 0.9;
+        target.MinRecentSalesToJudge      = 3;
     }
 }

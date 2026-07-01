@@ -137,6 +137,12 @@ public sealed class ScanCacheStore
             configuration.ShowOutOfStock,
             configuration.MaxItemsPerSession,
             configuration.MaxServersToVisit,
+            configuration.MaxBudgetPerSession,
+            configuration.HoldingWindowDays,
+            configuration.KellyFraction,
+            configuration.EnableUniversalis,
+            configuration.PriceCorroborationThreshold,
+            configuration.MinRecentSalesToJudge,
             categoryFilters);
 
         return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(fingerprintInput)));

@@ -25,6 +25,7 @@ public class NamazuFlippers : IDalamudPlugin
 
     private readonly RateLimiter rateLimiter;
     private readonly SaddlebagClient apiClient;
+    private readonly UniversalisClient universalisClient;
     private readonly ScanEngine scanEngine;
     private readonly ScanCacheStore cacheStore;
     private readonly FlipLedgerStore ledgerStore;
@@ -252,10 +253,12 @@ public class NamazuFlippers : IDalamudPlugin
 
         rateLimiter = new RateLimiter(TimeSpan.FromMilliseconds(1000));
         apiClient = new SaddlebagClient(Configuration, log, rateLimiter);
+        // Universalis enrichment uses its own rate limiter so it never starves the Saddlebag scan.
+        universalisClient = new UniversalisClient(Configuration, log, new RateLimiter(TimeSpan.FromMilliseconds(1000)));
         var routeOptimizer = new RouteOptimizer();
         cacheStore = new ScanCacheStore(pluginInterface, Configuration, log);
         ledgerStore = new FlipLedgerStore(pluginInterface, log);
-        scanEngine = new ScanEngine(apiClient, Configuration, log, routeOptimizer, cacheStore);
+        scanEngine = new ScanEngine(apiClient, Configuration, log, routeOptimizer, cacheStore, universalisClient);
 
         firstRunWindow = new FirstRunWindow(Configuration, pluginInterface, log);
         dailyRouteWindow = new DailyRouteWindow(this, log);

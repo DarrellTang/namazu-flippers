@@ -12,14 +12,18 @@ public sealed class ScanEngine
 {
     private const int ApiRetryCount = 3;
 
+    // Universalis enriches at most this many top survivors per scan (criterion 7).
+    private const int MaxEnrichItems = 100;
+
     private readonly SaddlebagClient client;
     private readonly Configuration configuration;
     private readonly RouteOptimizer? routeOptimizer;
     private readonly ScanCacheStore? cacheStore;
+    private readonly UniversalisClient? universalisClient;
     private readonly IPluginLog log;
 
     public ScanEngine(SaddlebagClient client, Configuration configuration, IPluginLog log)
-        : this(client, configuration, log, routeOptimizer: null, cacheStore: null)
+        : this(client, configuration, log, routeOptimizer: null, cacheStore: null, universalisClient: null)
     {
     }
 
@@ -28,12 +32,14 @@ public sealed class ScanEngine
         Configuration configuration,
         IPluginLog log,
         RouteOptimizer? routeOptimizer,
-        ScanCacheStore? cacheStore)
+        ScanCacheStore? cacheStore,
+        UniversalisClient? universalisClient = null)
     {
         this.client = client ?? throw new ArgumentNullException(nameof(client));
         this.configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
         this.routeOptimizer = routeOptimizer;
         this.cacheStore = cacheStore;
+        this.universalisClient = universalisClient;
         this.log = log ?? throw new ArgumentNullException(nameof(log));
     }
 
@@ -71,6 +77,20 @@ public sealed class ScanEngine
         else if (cacheStore != null)
         {
             var staleCache = await cacheStore.LoadAnyAsync(ct).ConfigureAwait(false);
+            // Only the refresh-failure fallback path reaches LoadAnyAsync, which (unlike the
+            // valid-cache path) does not vet the schema version. A pre-v3 envelope lacks the
+            // capital-efficiency / Kelly-quantity / absorption fields, so serving its DerivedResult
+            // would silently misread the old shape (criterion 11). Treat any non-current schema as
+            // no usable cache and surface the refresh error instead.
+            if (staleCache != null && staleCache.SchemaVersion != ScanCacheEnvelope.CurrentSchemaVersion)
+            {
+                log.Warning(
+                    "/nflip: ignoring stale scan cache with schema v{Version} (current v{Current}); not serving it.",
+                    staleCache.SchemaVersion,
+                    ScanCacheEnvelope.CurrentSchemaVersion);
+                staleCache = null;
+            }
+
             if (staleCache != null)
             {
                 staleCache.DerivedResult.Status = ScanEngineStatus.UsingStaleCache;
@@ -127,32 +147,54 @@ public sealed class ScanEngine
             if (items.Count == 0)
                 return (response, EmptyResult("No opportunities matched your current settings."));
 
-            // Final item-count cap is enforced by RouteOptimizer.TrimItemsPreservingStopOrder
-            // after the cumulative-budget filter. Truncating here would block the budget
-            // filter from skipping past too-expensive top-rank items to find affordable
-            // ones lower in the list.
+            // Admissibility floors are flat (criterion 2). Rank by capital efficiency, not absolute
+            // profit (criterion 1 / ADR-0001). The final item-count cap is enforced later by
+            // RouteOptimizer; keeping the full admissible pool lets Kelly sizing and the route see
+            // affordable lower-ranked items rather than truncating here.
             var opportunities = items
                 .Where(item => IsUsable(item, configuration))
-                .OrderByDescending(item => item.ExpectedDailyProfit)
-                .ThenByDescending(item => item.SalesPerDay)
-                .ThenBy(item => item.CheapestPrice)
                 .Select(ToOpportunity)
+                .OrderByDescending(opportunity => opportunity.CapitalEfficiency)
+                .ThenByDescending(opportunity => opportunity.SalesPerDay)
+                .ThenByDescending(opportunity => opportunity.ExpectedDailyProfit)
+                .ThenBy(opportunity => opportunity.PurchasePrice)
                 .ToList();
 
             if (opportunities.Count == 0)
                 return (response, EmptyResult("No opportunities matched your current settings."));
 
-            var totalExpectedProfit = opportunities.Sum(item => item.ExpectedDailyProfit);
+            // Tier 2/3: enrich the top survivors with Universalis depth + recent sales, then score
+            // sell/price confidence, absorption cap, and the final rank. Degrades to velocity-only
+            // (depth = 0, PriceConfidence = 1) when Universalis is disabled or unavailable.
+            var warnings = await EnrichAndScoreAsync(opportunities, ct).ConfigureAwait(false);
+
+            // Final ranking key = CapitalEfficiency × SellConfidence × PriceConfidence (criterion 3),
+            // tiebroken by raw velocity, then ExpectedDailyProfit, then ascending CheapestPrice
+            // (criterion 1).
+            opportunities = opportunities
+                .OrderByDescending(opportunity => opportunity.FinalRank)
+                .ThenByDescending(opportunity => opportunity.SalesPerDay)
+                .ThenByDescending(opportunity => opportunity.ExpectedDailyProfit)
+                .ThenBy(opportunity => opportunity.PurchasePrice)
+                .ToList();
+
+            // Absorption-capped half-Kelly sizing assigns each opportunity a recommended quantity
+            // (criterion 6 / ADR-0002). The budget pool is MaxBudgetPerSession.
+            KellySizer.AssignQuantities(opportunities, configuration.MaxBudgetPerSession, configuration.KellyFraction);
+
+            var deployedGil = KellySizer.TotalDeployedGil(opportunities);
             log.Information(
-                "/nflip: fresh scan ranked {Count} opportunities, expected daily profit {Profit:n0} gil.",
+                "/nflip: fresh scan ranked {Count} opportunities; Kelly deploys {Deployed:n0} of {Budget:n0} gil.",
                 opportunities.Count,
-                totalExpectedProfit);
+                deployedGil,
+                configuration.MaxBudgetPerSession);
 
             return (response, new ScanEngineResult
             {
                 Status = ScanEngineStatus.Success,
                 UserMessage = "Route ready.",
                 Opportunities = opportunities,
+                Warnings = warnings,
                 IsFresh = true,
             });
         }
@@ -234,9 +276,93 @@ public sealed class ScanEngine
         PurchasePrice = item.CheapestPrice,
         SalesPerDay = item.SalesPerDay,
         ExpectedDailyProfit = item.ExpectedDailyProfit,
+        ProfitPerUnit = item.ProfitPerUnit,
         OutOfStock = item.OutOfStock,
         IsVendorSource = IsVendorSource(item.CheapestServer),
+        CapitalEfficiency = OpportunityScoring.CapitalEfficiency(item.ProfitPerUnit, item.CheapestPrice, item.SalesPerDay),
     };
+
+    /// <summary>
+    /// Enriches the top <see cref="MaxEnrichItems"/> opportunities with Universalis home-world depth
+    /// and recent sales, then computes sell confidence, price confidence, absorption cap, and final
+    /// rank for every opportunity. Always completes: a disabled, empty, or failed Universalis call
+    /// leaves depth = 0 / PriceConfidence = 1 (criterion 8). Returns any non-fatal warnings.
+    /// </summary>
+    private async Task<List<ScanWarning>> EnrichAndScoreAsync(
+        IReadOnlyList<RankedOpportunity> opportunities,
+        CancellationToken ct)
+    {
+        var warnings = new List<ScanWarning>();
+        IReadOnlyDictionary<int, UniversalisItemData> enrichment = new Dictionary<int, UniversalisItemData>();
+
+        if (configuration.EnableUniversalis && universalisClient != null)
+        {
+            var topIds = opportunities
+                .Take(MaxEnrichItems)
+                .Select(opportunity => opportunity.ItemId)
+                .ToList();
+
+            try
+            {
+                enrichment = await universalisClient
+                    .FetchAsync(configuration.HomeWorld, topIds, ct)
+                    .ConfigureAwait(false);
+
+                if (enrichment.Count == 0 && topIds.Count > 0)
+                {
+                    log.Information("/nflip: Universalis returned no enrichment; using velocity-only scoring.");
+                }
+            }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                // Never fail a scan because Universalis failed (criterion 8 / ADR-0003).
+                log.Warning("/nflip: Universalis enrichment failed; degrading to velocity-only: {Message}", ex.Message);
+                warnings.Add(CreateScanWarning(
+                    "UniversalisEnrichmentFailed",
+                    "Competition and price data were unavailable, so the route uses velocity only.",
+                    ex.Message));
+                enrichment = new Dictionary<int, UniversalisItemData>();
+            }
+        }
+
+        foreach (var opportunity in opportunities)
+        {
+            enrichment.TryGetValue(opportunity.ItemId, out var data);
+            ApplyScoring(opportunity, data);
+        }
+
+        return warnings;
+    }
+
+    // Computes confidence multipliers, absorption cap, and final rank for one opportunity. When
+    // data is null (not enriched / degraded) depth = 0 and recent-sales count = 0, which yields
+    // SellConfidence = 1 and PriceConfidence = 1 — today's velocity-only behavior.
+    private void ApplyScoring(RankedOpportunity opportunity, UniversalisItemData? data)
+    {
+        var depth = data?.Depth ?? 0;
+        var recentMedian = data?.RecentMedianSalePrice ?? 0.0;
+        var recentCount = data?.RecentSalesCount ?? 0;
+
+        var expectedDemand = OpportunityScoring.ExpectedDemand(opportunity.SalesPerDay, configuration.HoldingWindowDays);
+
+        opportunity.Depth = depth;
+        opportunity.SellConfidence = OpportunityScoring.SellConfidence(expectedDemand, depth);
+        opportunity.AbsorptionCap = OpportunityScoring.AbsorptionCap(expectedDemand, depth);
+        opportunity.PriceConfidence = OpportunityScoring.PriceConfidence(
+            recentMedian,
+            recentCount,
+            opportunity.HomePrice,
+            configuration.PriceCorroborationThreshold,
+            configuration.MinRecentSalesToJudge);
+        opportunity.FinalRank = OpportunityScoring.FinalRank(
+            opportunity.CapitalEfficiency,
+            opportunity.SellConfidence,
+            opportunity.PriceConfidence);
+    }
 
     private static bool IsVendorSource(string purchaseSource) =>
         purchaseSource.Equals("Vendor", StringComparison.OrdinalIgnoreCase) ||

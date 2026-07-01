@@ -31,7 +31,7 @@ public class Configuration : IPluginConfiguration
     /// <summary>
     /// Configuration schema version for migration support. Bump when adding/removing properties.
     /// </summary>
-    public int Version { get; set; } = 1;
+    public int Version { get; set; } = 2;
 
     // === CONF-01: Home World ===
 
@@ -59,11 +59,11 @@ public class Configuration : IPluginConfiguration
     public int MinDesiredAvgPpu { get; set; } = 10000;
 
     /// <summary>
-    /// Maximum cumulative gil to spend across the entire route in one session.
-    /// RouteOptimizer takes items in profit-rank order and stops adding once the
-    /// running sum of CheapestPrice would exceed this cap. Items priced above the
-    /// remaining budget are skipped, not the entire route.
-    /// Set to 0 to disable the budget cap.
+    /// The half-Kelly capital pool (in gil) that <see cref="NamazuFlippers.Core.KellySizer"/>
+    /// allocates across the session's opportunities to produce each recommended quantity. Each
+    /// position gets a Kelly-weighted share of this pool, then is capped by market absorption and
+    /// the remaining pool. This is no longer a RouteOptimizer route-cost cap — routing does not
+    /// re-apply it. Set to 0 for no capital, which yields zero recommended quantities.
     /// </summary>
     public int MaxBudgetPerSession { get; set; } = 1_000_000;
 
@@ -134,6 +134,40 @@ public class Configuration : IPluginConfiguration
     /// How long (in hours) scan results remain valid before requiring a re-scan.
     /// </summary>
     public int CacheDurationHours { get; set; } = 4;
+
+    // === Profit-per-gil: capital efficiency, Kelly sizing, Universalis (Tiers 1-3) ===
+
+    /// <summary>
+    /// Days the player will let gil sit in unsold inventory before a flip is "stuck". Sets the
+    /// absorption ceiling (SalesPerDay × HoldingWindowDays) and the expected-demand window for
+    /// sell confidence. CONTEXT § Holding Window.
+    /// </summary>
+    public int HoldingWindowDays { get; set; } = 7;
+
+    /// <summary>
+    /// Fraction of full Kelly to deploy per position. 0.5 = half-Kelly, which under-bets on
+    /// purpose because the win-probabilities derived from noisy sales data are uncertain (ADR-0002).
+    /// </summary>
+    public double KellyFraction { get; set; } = 0.5;
+
+    /// <summary>
+    /// When true, enriches the top survivors of each scan with one batched Universalis call for
+    /// home-world listing depth + recent sales. When false (or on any failure) the scan degrades to
+    /// velocity-only behavior with depth = 0 and PriceConfidence = 1 (ADR-0003).
+    /// </summary>
+    public bool EnableUniversalis { get; set; } = true;
+
+    /// <summary>
+    /// Recent median sale price must reach this fraction of the expected sell price to leave price
+    /// confidence at 1.0; below it, rank and size are discounted. Never a hard filter (criterion 4).
+    /// </summary>
+    public double PriceCorroborationThreshold { get; set; } = 0.9;
+
+    /// <summary>
+    /// Minimum number of recent home-world sales required before price corroboration is applied.
+    /// Fewer than this ⇒ neutral price confidence (1.0).
+    /// </summary>
+    public int MinRecentSalesToJudge { get; set; } = 3;
 
     // === Optional: Shortage Predictor (Phase 6) ===
 
