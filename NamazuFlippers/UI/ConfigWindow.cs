@@ -138,6 +138,22 @@ public class ConfigWindow : Window
                 ImGui.Text("item's market absorption. 0 = no capital, so nothing is recommended.");
                 ImGui.EndTooltip();
             }
+
+            var holdingWindow = plugin.Configuration.HoldingWindowDays;
+            if (ImGui.SliderInt("Holding Window (days)", ref holdingWindow, 1, 30))
+            {
+                plugin.Configuration.HoldingWindowDays = Math.Clamp(holdingWindow, 1, 30);
+                isDirty = true;
+            }
+            if (ImGui.IsItemHovered())
+            {
+                ImGui.BeginTooltip();
+                ImGui.Text("How long you'll let gil sit in unsold inventory before a flip is 'stuck'.");
+                ImGui.Text("Sets each item's absorption ceiling (sales/day x window - competing listings).");
+                ImGui.Text("Raise it to recommend more/larger positions on slow-moving items;");
+                ImGui.Text("the trade-off is gil tied up longer.");
+                ImGui.EndTooltip();
+            }
         }
 
         // -- Velocity (CONF-03) --
