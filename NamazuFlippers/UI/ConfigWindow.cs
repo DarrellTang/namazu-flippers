@@ -125,7 +125,7 @@ public class ConfigWindow : Window
             }
 
             var budget = plugin.Configuration.MaxBudgetPerSession;
-            if (ImGui.InputInt("Budget Cap (gil)", ref budget))
+            if (ImGui.InputInt("Kelly Budget Pool (gil)", ref budget))
             {
                 plugin.Configuration.MaxBudgetPerSession = Math.Max(0, budget);
                 isDirty = true;
@@ -133,7 +133,9 @@ public class ConfigWindow : Window
             if (ImGui.IsItemHovered())
             {
                 ImGui.BeginTooltip();
-                ImGui.Text("Total gil to spend across the whole route. Set to 0 to disable.");
+                ImGui.Text("Capital pool the half-Kelly sizer allocates across the route.");
+                ImGui.Text("Recommended quantities are sized from this pool, then capped by each");
+                ImGui.Text("item's market absorption. 0 = no capital, so nothing is recommended.");
                 ImGui.EndTooltip();
             }
         }

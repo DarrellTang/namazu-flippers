@@ -59,11 +59,11 @@ public class Configuration : IPluginConfiguration
     public int MinDesiredAvgPpu { get; set; } = 10000;
 
     /// <summary>
-    /// Maximum cumulative gil to spend across the entire route in one session.
-    /// RouteOptimizer takes items in profit-rank order and stops adding once the
-    /// running sum of CheapestPrice would exceed this cap. Items priced above the
-    /// remaining budget are skipped, not the entire route.
-    /// Set to 0 to disable the budget cap.
+    /// The half-Kelly capital pool (in gil) that <see cref="NamazuFlippers.Core.KellySizer"/>
+    /// allocates across the session's opportunities to produce each recommended quantity. Each
+    /// position gets a Kelly-weighted share of this pool, then is capped by market absorption and
+    /// the remaining pool. This is no longer a RouteOptimizer route-cost cap — routing does not
+    /// re-apply it. Set to 0 for no capital, which yields zero recommended quantities.
     /// </summary>
     public int MaxBudgetPerSession { get; set; } = 1_000_000;
 
