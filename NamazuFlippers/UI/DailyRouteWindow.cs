@@ -452,6 +452,22 @@ public class DailyRouteWindow : Window
                     ImGui.EndDisabled();
                 ImGui.SameLine();
                 ImGui.TextColored(GilGold, $"List: {item.HomePrice:n0}");
+
+                // Unverified-price hint: the sell price is Saddlebag's average, not corroborated by
+                // recent home-world sales, so it may be inflated by outlier listings. A verified
+                // price is the median of recent Universalis sales and carries no marker.
+                if (!item.PriceVerified)
+                {
+                    ImGui.SameLine(0, 4);
+                    ImGui.TextColored(StaleAmber, "(?)");
+                    if (ImGui.IsItemHovered())
+                    {
+                        ImGui.BeginTooltip();
+                        ImGui.Text("Unverified price — Saddlebag average, not confirmed by recent sales.");
+                        ImGui.Text("Check the market board before listing; it may be outlier-inflated.");
+                        ImGui.EndTooltip();
+                    }
+                }
             }
         }
         finally

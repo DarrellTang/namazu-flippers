@@ -8,6 +8,41 @@ namespace NamazuFlippers.Core;
 /// </summary>
 public static class OpportunityScoring
 {
+    /// <summary>FFXIV market board retainer fee: 5% is taken on every sale, so a unit nets 95%.</summary>
+    public const double MarketTaxRate = 0.95;
+
+    /// <summary>
+    /// Resolves the expected sell price. Prefers the outlier-robust <b>median</b> of recent
+    /// home-world Universalis sales when at least <paramref name="minRecentSalesToJudge"/> are
+    /// available; otherwise falls back to Saddlebag's average and reports the price as unverified.
+    /// The median is immune to the occasional 1M-gil misclick sale that inflates Saddlebag's mean.
+    /// </summary>
+    /// <returns>The sell price to use, and whether it was corroborated by recent sales.</returns>
+    public static (int SellPrice, bool Verified) ResolveSellPrice(
+        int saddlebagSellPrice,
+        double recentMedianSalePrice,
+        int recentSalesCount,
+        int minRecentSalesToJudge)
+    {
+        if (recentSalesCount >= minRecentSalesToJudge && recentMedianSalePrice > 0)
+            return ((int)Math.Round(recentMedianSalePrice, MidpointRounding.AwayFromZero), true);
+
+        return (saddlebagSellPrice, false);
+    }
+
+    /// <summary>
+    /// Post-tax profit per unit: floor(expectedSellPrice × 0.95) − purchasePrice, clamped to int.
+    /// </summary>
+    public static int NetProfitPerUnit(int expectedSellPrice, int purchasePrice)
+    {
+        var net = Math.Floor(expectedSellPrice * MarketTaxRate) - purchasePrice;
+        if (net >= int.MaxValue)
+            return int.MaxValue;
+        if (net <= int.MinValue)
+            return int.MinValue;
+        return (int)net;
+    }
+
     /// <summary>
     /// CapitalEfficiency = (profitPerUnit / cheapestPrice) × salesPerDay — the velocity-aware
     /// return-per-gil-per-day that ranks opportunities (ADR-0001). Zero when price is non-positive.
