@@ -33,7 +33,8 @@ terminal state. Do not block-wait between ticks.
         not thrash — see the disagreement guard).
      c. Stay within `ACCEPTANCE.md` scope. New ideas → `gh issue create`, never
         new scope here.
-     d. Commit (atomic, one concern per commit) and push.
+     d. Commit (atomic, one concern per commit) and push as the repo owner:
+        `GH_TOKEN=$(gh auth token --user DarrellTang) git push` (see the auth note).
      e. Confirm CI: invoke the `watch-ci-run` skill for this PR's branch; if the
         `build` job fails, fix and re-push until green.
      f. Resolve the threads you fixed (GraphQL `resolveReviewThread`).
@@ -84,3 +85,10 @@ terminal state. Do not block-wait between ticks.
 - Merge is the human's; never `gh pr merge`.
 - All coordination is via the PR. Do not assume anything about Pi's state beyond
   what the labels, threads, and status comment say.
+- **Auth (two-account machine).** `gh` here has two accounts, and the Reviewer (Pi)
+  runs as `darrell-tang-consulting`, which flips the shared *active* account. Do
+  **not** use `gh auth switch` to fix a 403 — mutating the global active account can
+  break Pi mid-review. Instead run every `git push` and every `gh` **write** (labels,
+  comments, thread resolves, reviews) as the repo owner with a per-command token:
+  prefix with `GH_TOKEN=$(gh auth token --user DarrellTang)`. It reads the
+  already-stored credential — no PAT, no global state change, no race with Pi.

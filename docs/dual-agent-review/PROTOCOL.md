@@ -138,6 +138,13 @@ the decision is saved to `~/.pi/agent/trust.json`). Both agents share the same
 `/review-loop` command name — Claude's is `.claude/commands/review-loop.md`
 (Builder), Pi's is `.pi/prompts/review-loop.md` (Reviewer).
 
+**Shared `gh` auth.** The two agents share one machine's `gh` login, which has two
+accounts; Pi runs as `darrell-tang-consulting` and flips the *active* account, so the
+Builder's pushes to the owner's personal repo would 403. Fix without touching global
+state: the Builder runs each `git push` and `gh` write with a per-command token —
+`GH_TOKEN=$(gh auth token --user DarrellTang)`. Never `gh auth switch` mid-loop; it
+would flip the account out from under the concurrent Reviewer.
+
 ## Per-PR kickoff
 
 1. **Phase 0 (Q&A):** Builder interviews the owner, writes `ACCEPTANCE.md`, commits it.
