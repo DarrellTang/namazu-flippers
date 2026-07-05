@@ -16,7 +16,7 @@ namespace NamazuFlippers.UI;
 /// </summary>
 public class DailyRouteWindow : Window
 {
-    // Color palette per 04-UI-SPEC.md (locked values — nyquist.sh asserts these literals).
+    // Color palette per 04-UI-SPEC.md (locked values).
     private static readonly Vector4 GilGold = new(1.0f, 0.85f, 0.1f, 1.0f);
     private static readonly Vector4 PurchaseCyan = new(0.2f, 0.85f, 0.9f, 1.0f);
     private static readonly Vector4 VendorCyan = new(0.2f, 0.85f, 0.9f, 1.0f);

@@ -4,7 +4,7 @@ namespace NamazuFlippers.UI;
 
 /// <summary>
 /// UI color palette per 04-UI-SPEC.md (locked Vector4 values).
-/// Used by DailyRouteWindow and ConfigWindow. Do not deviate — nyquist.sh asserts these literals.
+/// Used by DailyRouteWindow and ConfigWindow. Do not deviate from 04-UI-SPEC.md.
 /// </summary>
 public static class UiColors
 {
