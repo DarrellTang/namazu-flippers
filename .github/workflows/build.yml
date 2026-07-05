@@ -63,7 +63,9 @@ jobs:
 
       - name: Run nyquist source validation
         working-directory: ${{ github.workspace }}
-        run: bash tests/phase09_nyquist.sh
+        run: |
+          bash tests/phase09_nyquist.sh
+          bash tests/phase10_nyquist.sh
 
       - name: Package plugin
         run: |

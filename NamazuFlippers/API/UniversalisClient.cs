@@ -16,6 +16,9 @@ public sealed class UniversalisClient
 {
     private const int MaxItemIds = 100;
 
+    // Total attempts for a single enrichment request (1 try + 2 retries) on transient failures.
+    private const int MaxAttempts = 3;
+
     private static readonly HttpClient Http = CreateHttpClient();
 
     private static HttpClient CreateHttpClient()
@@ -72,16 +75,12 @@ public sealed class UniversalisClient
             var idsPath = string.Join(",", ids);
             var requestUri = $"/api/v2/{Uri.EscapeDataString(homeWorld)}/{idsPath}?listings=100&entries=50";
 
-            using var response = await Http.GetAsync(requestUri, ct).ConfigureAwait(false);
-
-            if (!response.IsSuccessStatusCode)
-            {
-                _log.Warning("/nflip: Universalis enrichment returned {StatusCode}, skipping enrichment.",
-                    (int)response.StatusCode);
+            // Universalis intermittently returns 504 (gateway timeout) on the batched endpoint; a
+            // couple of bounded retries recover most of them so a transient blip doesn't cost the
+            // whole scan its enrichment. A null body means all attempts were exhausted — degrade.
+            var body = await GetWithRetryAsync(requestUri, ct).ConfigureAwait(false);
+            if (body == null)
                 return result;
-            }
-
-            var body = await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
 
             if (ids.Count == 1)
             {
@@ -116,6 +115,63 @@ public sealed class UniversalisClient
             _log.Warning("/nflip: Universalis enrichment failed: {Message}", ex.Message);
             return result;
         }
+    }
+
+    // Issues the GET with bounded retries. Returns the response body on success, or null when all
+    // attempts are exhausted or the server returns a non-retryable (4xx) status. Retries transient
+    // 5xx (e.g. 504) and network/timeout errors with exponential backoff. Rethrows only genuine
+    // cancellation; every other failure resolves to null so the caller degrades gracefully.
+    private async Task<string?> GetWithRetryAsync(string requestUri, CancellationToken ct)
+    {
+        for (var attempt = 0; attempt < MaxAttempts; attempt++)
+        {
+            if (attempt > 0)
+            {
+                var backoff = TimeSpan.FromMilliseconds(500 * Math.Pow(2, attempt - 1));
+                await Task.Delay(backoff, ct).ConfigureAwait(false);
+            }
+
+            try
+            {
+                using var response = await Http.GetAsync(requestUri, ct).ConfigureAwait(false);
+                if (response.IsSuccessStatusCode)
+                    return await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+
+                var status = (int)response.StatusCode;
+                var lastAttempt = attempt == MaxAttempts - 1;
+
+                // 4xx is a client-side problem that won't fix itself; only retry transient 5xx.
+                if (status < 500 || lastAttempt)
+                {
+                    _log.Warning("/nflip: Universalis enrichment returned {StatusCode}, skipping enrichment.", status);
+                    return null;
+                }
+
+                _log.Information(
+                    "/nflip: Universalis returned {StatusCode}; retrying enrichment (attempt {Next}/{Max}).",
+                    status, attempt + 2, MaxAttempts);
+            }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+            {
+                // Network error or per-request timeout (ct not cancelled).
+                if (attempt == MaxAttempts - 1)
+                {
+                    _log.Warning("/nflip: Universalis enrichment failed after {Max} attempts: {Message}",
+                        MaxAttempts, ex.Message);
+                    return null;
+                }
+
+                _log.Information(
+                    "/nflip: Universalis request error; retrying enrichment (attempt {Next}/{Max}): {Message}",
+                    attempt + 2, MaxAttempts, ex.Message);
+            }
+        }
+
+        return null;
     }
 
     private static UniversalisItemData ToItemData(UniversalisItem item)
