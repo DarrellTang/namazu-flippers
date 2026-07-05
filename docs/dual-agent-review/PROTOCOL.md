@@ -94,6 +94,12 @@ Merge stays human: on `converged`, both agents stop and `@`-mention the owner.
   than thrashing. Human breaks the tie.
 - **Scope lock.** New ideas discovered mid-loop become a follow-up issue
   (`gh issue create`), never new scope on this PR.
+- **Watchdog (the budget brake).** Both agents run on subscriptions, so there is no
+  dollar cost to cap — the scarce resources are wall-clock and the owner's attention.
+  Timed from the PR's own `drl:*` label events: if the loop's **age > 2h** or it sits
+  **idle > 30m** (no label change — usually a human step was missed), the Builder sets
+  `drl:blocked` and `@`-mentions the owner with the concrete next action. This bounds a
+  self-scheduling loop and nudges the owner when they are the gap.
 
 ---
 
@@ -111,6 +117,7 @@ round. It is the human's at-a-glance dashboard:
 - CI: ✅ build passing
 - Open threads: 3
 - Done-gates: CI ✅ | accept-tests ✅ | criteria 4/5 | threads ❌ | scope ✅
+- Watchdog: age 24m / idle 4m (caps 2h / 30m)
 - Next: Builder addresses 3 threads
 ```
 

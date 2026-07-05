@@ -159,7 +159,12 @@ the cheat slips through, the test is too loose.
 - `.planning/` is kept frozen as a historical record (live code comments still cite
   `.planning/debug/*`). The GSD tooling under `.pi/gsd/` is gitignored, not tracked.
 
-## Known gap (later)
+## Budget brake (done)
 
-No cost/time ceiling on the loop yet — `MAX_ROUNDS = 6` caps rounds but not dollars or
-wall-clock. Add a budget brake to the runner before any long unattended run.
+Both agents run on subscriptions (Claude Code + Codex), so there is no per-token dollar
+cost to cap — the scarce resources are wall-clock and the owner's attention. The
+`/review-loop` runner has a **watchdog**: timed from the PR's own `drl:*` label events, if
+the loop's age exceeds **2h** or it sits idle (no label change) for **30m**, it sets
+`drl:blocked` and `@`-mentions the owner with the next action. `MAX_ROUNDS = 6` still caps
+review rounds. Together these are the loop's four honest stop conditions made complete:
+goal-met · **budget/watchdog** · stalled · needs-a-human.
