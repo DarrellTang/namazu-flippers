@@ -5,11 +5,12 @@ namespace NamazuFlippers.Data;
 
 public sealed class ScanCacheEnvelope
 {
-    // v2 → v3: opportunities now carry capital-efficiency rank, Universalis depth/price-confidence,
-    // absorption cap, and a recommended Kelly quantity. v2 envelopes lack these fields, so
-    // ScanCacheStore.IsValid treats them as stale and forces one fresh scan (criterion 11) —
-    // no crash, no silent misread of the old shape.
-    public const int CurrentSchemaVersion = 3;
+    // Schema version + staleness rule live in CacheSchema (dependency-free, so the rule is
+    // unit-testable); this alias keeps existing references working. v2 → v3: opportunities now
+    // carry capital-efficiency rank, Universalis depth/price-confidence, absorption cap, and a
+    // recommended Kelly quantity. v2 envelopes lack these, so IsValid treats them as stale and
+    // forces one fresh scan (criterion 11) — no crash, no silent misread of the old shape.
+    public const int CurrentSchemaVersion = CacheSchema.CurrentVersion;
 
     public int SchemaVersion { get; set; } = CurrentSchemaVersion;
 

@@ -9,10 +9,13 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- Pure math under test, compiled directly (no Dalamud, no ProjectReference). -->
+    <!-- Dalamud-free source under test, compiled directly (no Dalamud, no ProjectReference). -->
     <Compile Include="../NamazuFlippers/Core/RankedOpportunity.cs" />
     <Compile Include="../NamazuFlippers/Core/OpportunityScoring.cs" />
     <Compile Include="../NamazuFlippers/Core/KellySizer.cs" />
+    <Compile Include="../NamazuFlippers/API/TransientHttpRetry.cs" />
+    <Compile Include="../NamazuFlippers/Data/CacheSchema.cs" />
+    <Compile Include="../NamazuFlippers/ConfigurationSettings.cs" />
   </ItemGroup>
 
   <ItemGroup>
