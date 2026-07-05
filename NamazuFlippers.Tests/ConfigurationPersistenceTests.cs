@@ -76,27 +76,51 @@ public class ConfigurationPersistenceTests
     }
 
     [Fact]
-    public void Snapshot_deep_copies_array_settings()
+    public void Snapshot_deep_copies_every_array_setting()
     {
         var original = Mutated();
         var snapshot = Cfg.Snapshot(original);
 
-        original.CategoryFilters[0] = -999;
+        // Every mutable array setting (CategoryFilters, PreferredCategories, and any future one)
+        // must be an independent copy, not a shared reference.
+        foreach (var p in SettingProps().Where(p => typeof(Array).IsAssignableFrom(p.PropertyType)))
+        {
+            var orig = (Array)p.GetValue(original)!;
+            var snap = (Array)p.GetValue(snapshot)!;
 
-        Assert.NotEqual(-999, snapshot.CategoryFilters[0]);
+            Assert.NotSame(orig, snap);   // a shared reference would be a shallow copy
+
+            // Mutating the original must not reach into the snapshot's copy.
+            var snapFirstBefore = snap.GetValue(0);
+            var elemType = p.PropertyType.GetElementType()!;
+            object sentinel = elemType == typeof(string) ? "__mutated__" : Convert.ChangeType(-12345, elemType);
+            orig.SetValue(sentinel, 0);
+
+            Assert.True(Equals(snapFirstBefore, snap.GetValue(0)),
+                $"{p.Name} was shallow-copied by Snapshot (mutating the original changed the snapshot)");
+        }
     }
 
     [Fact]
-    public void RestoreDefaults_resets_tunables_but_preserves_home_world()
+    public void RestoreDefaults_resets_every_tunable_and_preserves_identity_fields()
     {
+        // RestoreDefaults resets search/route/cache preferences; it intentionally leaves the
+        // player-identity/migration fields alone. Assert every other setting equals a fresh default.
+        var preserved = new HashSet<string> { nameof(Cfg.HomeWorld), nameof(Cfg.Version) };
+
         var c = Mutated();
         Cfg.RestoreDefaults(c);
-
         var def = new Cfg();
-        Assert.Equal(def.HoldingWindowDays, c.HoldingWindowDays);
-        Assert.Equal(def.KellyFraction, c.KellyFraction);
-        Assert.Equal(def.MaxBudgetPerSession, c.MaxBudgetPerSession);
-        Assert.Equal(def.PriceCorroborationThreshold, c.PriceCorroborationThreshold);
-        Assert.Equal("Behemoth", c.HomeWorld);   // player identity is preserved on reset
+
+        foreach (var p in SettingProps())
+        {
+            if (preserved.Contains(p.Name))
+                continue;
+            Assert.True(ValuesEqual(p.GetValue(def), p.GetValue(c)),
+                $"{p.Name} was not reset to its default by RestoreDefaults");
+        }
+
+        Assert.Equal("Behemoth", c.HomeWorld);   // player identity is preserved, not reset
+        Assert.Equal(99, c.Version);             // migration version is preserved, not reset
     }
 }
