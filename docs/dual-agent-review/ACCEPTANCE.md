@@ -1,59 +1,70 @@
-# ACCEPTANCE — Holding Window slider + Universalis transient-error retry
+# ACCEPTANCE — Owned verifier: unit tests replace nyquist source-greps
 
-The contract both agents review against for PR #7. Follow-up to the Tiers 1-3 work
-(previous contract archived at `ACCEPTANCE-01-profit-per-gil.md`). Glossary in `/CONTEXT.md`;
-sizing rationale in `docs/adr/0002`–`0003`.
+The contract both agents review against. Implements the build backlog in
+`VERIFICATION-POLICY.md` (issue #9): convert the four machine-checkable criteria that GSD's
+`phaseNN_nyquist.sh` scripts "verified" by grepping source into real unit tests the project
+owns, extracting the minimal Dalamud-free seams required, and retire the two CI-wired nyquist
+scripts. Glossary in `/CONTEXT.md`.
 
 ## Goal
-Two usability/resilience fixes surfaced by live testing of the merged profit-per-gil build:
-make the **holding window** tunable in-app (the primary lever for how many slow-moving
-opportunities get a recommended quantity), and stop dropping Universalis enrichment on a
-single transient gateway error.
+Make the checker's "green" mean behavior, not text. A grep for `MaxAttempts = 3` passes on a
+dead constant; a unit test does not. Each new test is proven with the two-diff cheat check
+(green on a real fix, red on a cheat).
 
 ## Acceptance criteria
 
-1. **Holding Window control.** `ConfigWindow` renders an editable **slider** for
-   `HoldingWindowDays` (range **1–30**), sets the dirty flag on change, clamps to the range,
-   and carries a tooltip explaining the absorption/velocity trade-off (bigger window ⇒ larger
-   absorption ceiling ⇒ more/larger recommended positions on slow items, at the cost of gil
-   sitting longer).
-2. **Setting persists.** `HoldingWindowDays` continues to round-trip through `ConfigWindow`'s
-   `Snapshot` / `RestoreFrom` / `RestoreDefaults` (default 7), so the new control's value is not
-   lost through discard/reset flows.
-3. **Universalis transient-error retry.** `UniversalisClient` retries transient failures — HTTP
-   **5xx (incl. 504)** and network/timeout errors — up to a bounded attempt count with exponential
-   backoff. A **4xx** is not retried (client-side, won't self-heal).
-4. **Graceful degradation preserved.** When retries are exhausted, or on any non-cancellation
-   failure, the enrichment call resolves to an empty/partial result and the scan completes
-   velocity-only (depth = 0, PriceConfidence = 1). Only genuine cancellation
-   (`OperationCanceledException` with the token cancelled) propagates. A scan never fails because
-   Universalis failed.
-5. **No sizing/behavior regression.** The profit-per-gil ranking and absorption-capped Kelly math
-   are unchanged; the existing `NamazuFlippers.Tests` (xUnit) and `tests/phase09_nyquist.sh` still
-   pass in CI.
+1. **Retry policy is Dalamud-free and behavior-preserving.** The transient-retry loop is
+   extracted to `NamazuFlippers/API/TransientHttpRetry.cs` (no Dalamud dependency).
+   `UniversalisClient` delegates to it and keeps its existing behavior: retries transient 5xx and
+   network/timeout errors with exponential backoff, never retries 4xx, returns null on exhaustion,
+   and rethrows only genuine cancellation.
+2. **Retry is unit-tested.** `TransientHttpRetryTests` proves: first-success returns the body;
+   `500,500,200` ⇒ 3 attempts then body; a 4xx ⇒ 1 attempt then null; persistent 5xx ⇒ null at the
+   attempt ceiling; a network error is retried then succeeds; a cancelled token propagates
+   `OperationCanceledException`; backoff is applied before each retry, never before the first.
+3. **Config settings + snapshot/restore are Dalamud-free.** All settings, their defaults, and the
+   `Snapshot`/`RestoreFrom`/`RestoreDefaults` logic move from the ImGui window into a Dalamud-free
+   `Configuration` partial (`ConfigurationSettings.cs`); the IPluginConfiguration marker stays in
+   `Configuration.cs`. `ConfigWindow` calls the relocated methods; behavior is unchanged.
+4. **Config persistence is unit-tested.** `ConfigurationPersistenceTests` round-trips **every**
+   setting by reflection (so a future field missed by Snapshot/RestoreFrom fails automatically),
+   proves Snapshot deep-copies array settings, and proves RestoreDefaults resets tunables while
+   preserving `HomeWorld`.
+5. **Config defaults are unit-tested.** `ConfigurationDefaultsTests` pins the locked Tier 1-3
+   defaults (7 / 0.5 / true / 0.9 / 3) and the core defaults.
+6. **Cache staleness rule is Dalamud-free and unit-tested.** The schema version + "is current"
+   rule move to `NamazuFlippers/Data/CacheSchema.cs`; `ScanCacheStore.IsValid` uses it.
+   `CacheSchemaTests` proves v3 is current and v0/v1/v2/v4 are rejected as stale (criterion 11).
+7. **Verification is re-homed off nyquist.** The two CI-wired scripts (`tests/phase09_nyquist.sh`,
+   `tests/phase10_nyquist.sh`) and the "Run nyquist source validation" CI step are removed. The
+   plugin still compiles and packages, and `dotnet test` runs all unit tests in CI.
 
 ## Completion tests
 
 | Test / check | Covers | Runs in CI? |
 |---|---|---|
-| `tests/phase10_nyquist.sh` — source-greps the Holding Window slider (label/range/clamp/tooltip/persistence) and the Universalis retry (bounded attempts, backoff, 5xx-only retry, degrade path) | 1,2,3,4 | yes (added to CI) |
-| `tests/phase09_nyquist.sh` — unchanged Tier 1-3 pipeline/config/cache/UI validation | 5 (no regression) | yes |
-| `NamazuFlippers.Tests` (xUnit, 43) — pure sizing math unchanged | 5 (no regression) | yes — `dotnet test` |
-| `gh pr checks` build job | compiles against Dalamud | yes |
+| `NamazuFlippers.Tests/TransientHttpRetryTests.cs` | 1, 2 | yes — `dotnet test` |
+| `NamazuFlippers.Tests/ConfigurationPersistenceTests.cs` | 3, 4 | yes — `dotnet test` |
+| `NamazuFlippers.Tests/ConfigurationDefaultsTests.cs` | 5 | yes — `dotnet test` |
+| `NamazuFlippers.Tests/CacheSchemaTests.cs` | 6 | yes — `dotnet test` |
+| `gh pr checks` build job (`dotnet build` + package) | 1, 3, 6, 7 | yes |
+
+62 tests pass locally (43 prior + 19 new); each new test was verified to go red under a cheat
+diff. Full plugin compilation is confirmed by CI (macOS can't compile against Dalamud).
 
 ## Verification method
-Criteria 1–4 → nyquist source validation (`phase10`) + reviewer reads the diff (the retry loop and
-the slider are wiring, not pure functions — no new Dalamud-free unit surface). Criterion 5 →
-existing xUnit + `phase09` stay green. The Reviewer (Pi) maps each criterion to code/test evidence
-before approving.
+All criteria are Tier 🟩 **Test** per `VERIFICATION-POLICY.md` and verified by `dotnet test` in CI
+plus the build job. The Reviewer confirms each test fails a cheat (the two-diff check) and that the
+extractions preserve behavior (no logic changed, only relocated).
 
-## Out of scope (owner-declined or follow-up, not blockers)
-- Showing quantity-0 ("market saturated") items greyed out — the owner explicitly declined this.
-- UI widgets for the other Tier 1-3 settings (KellyFraction, EnableUniversalis toggle,
-  PriceCorroborationThreshold, MinRecentSalesToJudge) — separate follow-up.
-- Broadening category presets beyond Furniture/Collectibles/Glamour — separate follow-up.
-- Tuning the retry counts/backoff against real Universalis rate limits (data-driven, later).
+## Out of scope (follow-up, not blockers)
+- Removing the non-CI-wired nyquist scripts (`tests/phase03`–`phase08_nyquist.sh`) — part of the
+  broader GSD removal sweep, not this PR.
+- The diff-read criteria (profit floors, enrichment gating, routing) and smoke criteria (UI
+  rendering) are unchanged in behavior; they are now verified per `VERIFICATION-POLICY.md`
+  (reviewer diff-read / owner smoke test), not by a grep. No new tests for them here.
+- A loop cost/time budget brake (tracked as the known gap in `VERIFICATION-POLICY.md`).
 
 ## Definition of done
-The 5 objective gates in `PROTOCOL.md`: CI green · acceptance tests (phase10 + phase09 + xUnit)
-green in CI · every criterion above satisfied · zero unresolved review threads · scope clean.
+The 5 objective gates in `PROTOCOL.md`: CI green · acceptance tests (the four test files above)
+green in CI · every criterion satisfied · zero unresolved review threads · scope clean.
