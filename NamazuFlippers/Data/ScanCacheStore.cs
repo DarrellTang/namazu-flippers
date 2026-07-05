@@ -149,7 +149,7 @@ public sealed class ScanCacheStore
     }
 
     public static bool IsValid(ScanCacheEnvelope envelope, string expectedFingerprint, DateTimeOffset nowUtc) =>
-        envelope.SchemaVersion == ScanCacheEnvelope.CurrentSchemaVersion &&
+        CacheSchema.IsCurrent(envelope.SchemaVersion) &&
         envelope.ExpiresAtUtc > nowUtc &&
         envelope.ConfigFingerprint == expectedFingerprint;
 }

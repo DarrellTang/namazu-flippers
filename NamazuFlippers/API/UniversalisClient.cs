@@ -117,62 +117,28 @@ public sealed class UniversalisClient
         }
     }
 
-    // Issues the GET with bounded retries. Returns the response body on success, or null when all
-    // attempts are exhausted or the server returns a non-retryable (4xx) status. Retries transient
-    // 5xx (e.g. 504) and network/timeout errors with exponential backoff. Rethrows only genuine
-    // cancellation; every other failure resolves to null so the caller degrades gracefully.
-    private async Task<string?> GetWithRetryAsync(string requestUri, CancellationToken ct)
-    {
-        for (var attempt = 0; attempt < MaxAttempts; attempt++)
-        {
-            if (attempt > 0)
-            {
-                var backoff = TimeSpan.FromMilliseconds(500 * Math.Pow(2, attempt - 1));
-                await Task.Delay(backoff, ct).ConfigureAwait(false);
-            }
-
-            try
-            {
-                using var response = await Http.GetAsync(requestUri, ct).ConfigureAwait(false);
-                if (response.IsSuccessStatusCode)
-                    return await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
-
-                var status = (int)response.StatusCode;
-                var lastAttempt = attempt == MaxAttempts - 1;
-
-                // 4xx is a client-side problem that won't fix itself; only retry transient 5xx.
-                if (status < 500 || lastAttempt)
-                {
-                    _log.Warning("/nflip: Universalis enrichment returned {StatusCode}, skipping enrichment.", status);
-                    return null;
-                }
-
-                _log.Information(
-                    "/nflip: Universalis returned {StatusCode}; retrying enrichment (attempt {Next}/{Max}).",
-                    status, attempt + 2, MaxAttempts);
-            }
-            catch (OperationCanceledException) when (ct.IsCancellationRequested)
-            {
-                throw;
-            }
-            catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
-            {
-                // Network error or per-request timeout (ct not cancelled).
-                if (attempt == MaxAttempts - 1)
-                {
-                    _log.Warning("/nflip: Universalis enrichment failed after {Max} attempts: {Message}",
-                        MaxAttempts, ex.Message);
-                    return null;
-                }
-
-                _log.Information(
-                    "/nflip: Universalis request error; retrying enrichment (attempt {Next}/{Max}): {Message}",
-                    attempt + 2, MaxAttempts, ex.Message);
-            }
-        }
-
-        return null;
-    }
+    // Issues the GET with bounded retries via the Dalamud-free TransientHttpRetry policy (which is
+    // unit-tested in isolation). Returns the body on success, or null when attempts are exhausted or
+    // the server returns a non-retryable (4xx) status. Retries transient 5xx (e.g. 504) and
+    // network/timeout errors with exponential backoff; rethrows only genuine cancellation, so every
+    // other failure resolves to null and the caller degrades gracefully.
+    private Task<string?> GetWithRetryAsync(string requestUri, CancellationToken ct) =>
+        TransientHttpRetry.GetStringAsync(
+            send: token => Http.GetAsync(requestUri, token),
+            maxAttempts: MaxAttempts,
+            backoff: attempt => TimeSpan.FromMilliseconds(500 * Math.Pow(2, attempt - 1)),
+            onRetryStatus: (status, next) => _log.Information(
+                "/nflip: Universalis returned {StatusCode}; retrying enrichment (attempt {Next}/{Max}).",
+                status, next, MaxAttempts),
+            onRetryError: (next, message) => _log.Information(
+                "/nflip: Universalis request error; retrying enrichment (attempt {Next}/{Max}): {Message}",
+                next, MaxAttempts, message),
+            onStatusGiveUp: status => _log.Warning(
+                "/nflip: Universalis enrichment returned {StatusCode}, skipping enrichment.", status),
+            onErrorGiveUp: message => _log.Warning(
+                "/nflip: Universalis enrichment failed after {Max} attempts: {Message}",
+                MaxAttempts, message),
+            ct: ct);
 
     private static UniversalisItemData ToItemData(UniversalisItem item)
     {

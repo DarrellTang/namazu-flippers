@@ -53,7 +53,7 @@ public class ConfigWindow : Window
         // the user's edited values, corrupting the Discard restore path.
         if (!isDirty)
         {
-            snapshot = Snapshot(plugin.Configuration);
+            snapshot = Configuration.Snapshot(plugin.Configuration);
             selectedWorldIndex = Array.IndexOf(WorldData.KnownWorlds, plugin.Configuration.HomeWorld);
         }
     }
@@ -281,7 +281,7 @@ public class ConfigWindow : Window
         if (ImGui.Button("Save Settings", new Vector2(140, 0)))
         {
             pluginInterface.SavePluginConfig(plugin.Configuration);
-            snapshot = Snapshot(plugin.Configuration);
+            snapshot = Configuration.Snapshot(plugin.Configuration);
             isDirty = false;
         }
 
@@ -299,7 +299,7 @@ public class ConfigWindow : Window
             ImGui.Spacing();
             if (ImGui.Button("Reset", new Vector2(120, 0)))
             {
-                RestoreDefaults(plugin.Configuration);
+                Configuration.RestoreDefaults(plugin.Configuration);
                 isDirty = true;
                 ImGui.CloseCurrentPopup();
             }
@@ -318,7 +318,7 @@ public class ConfigWindow : Window
             if (ImGui.Button("Save", new Vector2(120, 0)))
             {
                 pluginInterface.SavePluginConfig(plugin.Configuration);
-                snapshot = Snapshot(plugin.Configuration);
+                snapshot = Configuration.Snapshot(plugin.Configuration);
                 isDirty = false;
                 IsOpen = false;
                 ImGui.CloseCurrentPopup();
@@ -326,7 +326,7 @@ public class ConfigWindow : Window
             ImGui.SameLine();
             if (ImGui.Button("Discard", new Vector2(120, 0)))
             {
-                if (snapshot != null) RestoreFrom(snapshot, plugin.Configuration);
+                if (snapshot != null) Configuration.RestoreFrom(snapshot, plugin.Configuration);
                 isDirty = false;
                 IsOpen = false;
                 ImGui.CloseCurrentPopup();
@@ -356,86 +356,5 @@ public class ConfigWindow : Window
         if (cfg.CategoryFilters.Contains(Configuration.CollectibleIds[0])) labels.Add("Collectibles");
         if (cfg.CategoryFilters.Contains(Configuration.GlamourIds[0]))     labels.Add("Glamour");
         return labels.ToArray();
-    }
-
-    private static Configuration Snapshot(Configuration source)
-    {
-        return new Configuration
-        {
-            Version                 = source.Version,
-            HomeWorld               = source.HomeWorld,
-            PreferredRoi            = source.PreferredRoi,
-            MinProfitAmount         = source.MinProfitAmount,
-            MinDesiredAvgPpu        = source.MinDesiredAvgPpu,
-            MaxBudgetPerSession        = source.MaxBudgetPerSession,
-            MinSalesPerDay          = source.MinSalesPerDay,
-            MinSalesPerWeek         = source.MinSalesPerWeek,
-            RegionWide              = source.RegionWide,
-            CategoryFilters         = (int[])source.CategoryFilters.Clone(),
-            PreferredCategories     = (string[])source.PreferredCategories.Clone(),
-            IncludeVendors          = source.IncludeVendors,
-            ShowOutOfStock          = source.ShowOutOfStock,
-            MaxItemsPerSession      = source.MaxItemsPerSession,
-            MaxServersToVisit       = source.MaxServersToVisit,
-            CacheDurationHours      = source.CacheDurationHours,
-            EnableShortagePredictor = source.EnableShortagePredictor,
-            HoldingWindowDays          = source.HoldingWindowDays,
-            KellyFraction              = source.KellyFraction,
-            EnableUniversalis          = source.EnableUniversalis,
-            PriceCorroborationThreshold = source.PriceCorroborationThreshold,
-            MinRecentSalesToJudge      = source.MinRecentSalesToJudge,
-        };
-    }
-
-    private static void RestoreFrom(Configuration snapshot, Configuration target)
-    {
-        target.Version                 = snapshot.Version;
-        target.HomeWorld               = snapshot.HomeWorld;
-        target.PreferredRoi            = snapshot.PreferredRoi;
-        target.MinProfitAmount         = snapshot.MinProfitAmount;
-        target.MinDesiredAvgPpu        = snapshot.MinDesiredAvgPpu;
-        target.MaxBudgetPerSession        = snapshot.MaxBudgetPerSession;
-        target.MinSalesPerDay          = snapshot.MinSalesPerDay;
-        target.MinSalesPerWeek         = snapshot.MinSalesPerWeek;
-        target.RegionWide              = snapshot.RegionWide;
-        target.CategoryFilters         = (int[])snapshot.CategoryFilters.Clone();
-        target.PreferredCategories     = (string[])snapshot.PreferredCategories.Clone();
-        target.IncludeVendors          = snapshot.IncludeVendors;
-        target.ShowOutOfStock          = snapshot.ShowOutOfStock;
-        target.MaxItemsPerSession      = snapshot.MaxItemsPerSession;
-        target.MaxServersToVisit       = snapshot.MaxServersToVisit;
-        target.CacheDurationHours      = snapshot.CacheDurationHours;
-        target.EnableShortagePredictor = snapshot.EnableShortagePredictor;
-        target.HoldingWindowDays          = snapshot.HoldingWindowDays;
-        target.KellyFraction              = snapshot.KellyFraction;
-        target.EnableUniversalis          = snapshot.EnableUniversalis;
-        target.PriceCorroborationThreshold = snapshot.PriceCorroborationThreshold;
-        target.MinRecentSalesToJudge      = snapshot.MinRecentSalesToJudge;
-    }
-
-    private static void RestoreDefaults(Configuration target)
-    {
-        // Note: HomeWorld is preserved (player identity, not a tunable setting).
-        // Reset only resets search/route/cache preferences.
-        target.PreferredRoi            = 25;
-        target.MinProfitAmount         = 10000;
-        target.MinDesiredAvgPpu        = 10000;
-        target.MaxBudgetPerSession        = 1_000_000;
-        target.MinSalesPerDay          = 0.33;
-        target.MinSalesPerWeek         = 2;
-        target.RegionWide              = false;
-        target.CategoryFilters         = (int[])Configuration.DefaultCategoryFilters.Clone();
-        target.PreferredCategories     = new[] { "Furniture", "Collectibles", "Glamour" };
-        target.IncludeVendors          = true;
-        target.ShowOutOfStock          = true;
-        target.MaxItemsPerSession      = 10;
-        target.MaxServersToVisit       = 10;
-        target.CacheDurationHours      = 4;
-        target.EnableShortagePredictor = false;
-        target.HoldingWindowDays          = 7;
-        target.KellyFraction              = 0.5;
-        target.EnableUniversalis          = true;
-        target.PriceCorroborationThreshold = 0.9;
-        target.MinRecentSalesToJudge      = 3;
     }
 }
