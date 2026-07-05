@@ -147,15 +147,17 @@ the cheat slips through, the test is too loose.
 
 ---
 
-## Cleanup when GSD is removed
+## GSD removal (done)
 
-- Delete `tests/phase09_nyquist.sh` and `tests/phase10_nyquist.sh`, and remove the
-  "Run nyquist source validation" step from `.github/workflows/build.yml`.
-- Rewrite `ACCEPTANCE.template.md` so "Completion tests" points at this policy's three
+- ✅ Deleted every `tests/phaseNN_nyquist.sh` script and removed the "Run nyquist source
+  validation" step from `.github/workflows/build.yml` (phase09/10 in #10, phase03–08 in the
+  GSD-removal PR).
+- ✅ Rewrote `ACCEPTANCE.template.md` so "Completion tests" points at this policy's three
   tiers (test / diff-read / smoke), not a `tests/<phase>_nyquist.sh` script.
-- Drop the `phaseNN_nyquist.sh` rows from the existing `ACCEPTANCE.md` and
-  `ACCEPTANCE-01-*.md` completion tables; the criteria they covered are re-homed in the
-  map above.
+- The archived `ACCEPTANCE-01/02-*.md` completion tables still name the nyquist scripts as a
+  historical record of what those past PRs used; they are left as-is.
+- `.planning/` is kept frozen as a historical record (live code comments still cite
+  `.planning/debug/*`). The GSD tooling under `.pi/gsd/` is gitignored, not tracked.
 
 ## Known gap (later)
 

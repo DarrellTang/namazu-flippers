@@ -15,13 +15,17 @@ top-N route reflects it" — not "improve ranking".>
 3.
 
 ## Completion tests
-<The actual tests/commands that encode each criterion above. In this repo that is
-typically a `tests/<phase>_nyquist.sh` source-validation script plus the CI `build`
-job. Name the file(s) and which criterion each covers.>
+<How each criterion is proven, using the three tiers in `VERIFICATION-POLICY.md`:
+🟩 **test** (a `NamazuFlippers.Tests` unit test — for logic reachable without Dalamud),
+🟨 **diff-read** (the reviewer confirms a safeguard in the diff), or
+🟦 **smoke** (the owner runs the published plugin — for visual/UI criteria, post-merge).
+Name the test file / thread / repro and which criterion each covers.>
 
-| Test / check | Covers criteria | Runs in CI? |
+| Test / check | Covers criteria | Tier |
 |---|---|---|
-| `tests/…_nyquist.sh` | 1, 2 | must be wired into build.yml |
+| `NamazuFlippers.Tests/…Tests.cs` | 1, 2 | 🟩 test — `dotnet test` in CI |
+| reviewer confirms in diff | 3 | 🟨 diff-read |
+| owner in-game smoke check | 4 | 🟦 smoke — post-merge |
 | `gh pr checks` build job | compiles | yes |
 
 ## Verification method

@@ -53,8 +53,8 @@ GitHub Actions is the authoritative compiler build for this project. The CI work
 macOS local builds are not expected to pass in this workspace. The project targets `net10.0-windows` through `Dalamud.NET.Sdk`, and without a configured Dalamud SDK path the local error is missing `Dalamud` assemblies from `DALAMUD_HOME`. On macOS, use source-level validation and CI for the real compile/package result.
 
 ```bash
-# macOS/source validation
-bash tests/phase03_nyquist.sh
+# macOS/source validation (Dalamud-free unit tests — runs anywhere)
+dotnet test NamazuFlippers.Tests/NamazuFlippers.Tests.csproj
 ```
 
 ### Build
