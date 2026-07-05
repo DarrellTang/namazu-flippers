@@ -50,6 +50,11 @@ public sealed class RankedOpportunity
     /// Universalis is unavailable or too few recent sales to judge.</summary>
     public double PriceConfidence { get; set; } = 1.0;
 
+    /// <summary>True when the expected sell price is the median of enough recent home-world
+    /// Universalis sales (outlier-robust). False when it is Saddlebag's average — shown as an
+    /// "unverified price" hint in the UI so a fluke-inflated average is never taken at face value.</summary>
+    public bool PriceVerified { get; set; }
+
     /// <summary>Per-opportunity unit ceiling A = max(0, d_exp − depth). Caps the recommended
     /// quantity so the player's gil is not stuck behind unsold listings.</summary>
     public double AbsorptionCap { get; set; }

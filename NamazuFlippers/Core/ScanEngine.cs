@@ -164,9 +164,20 @@ public sealed class ScanEngine
                 return (response, EmptyResult("No opportunities matched your current settings."));
 
             // Tier 2/3: enrich the top survivors with Universalis depth + recent sales, then score
-            // sell/price confidence, absorption cap, and the final rank. Degrades to velocity-only
-            // (depth = 0, PriceConfidence = 1) when Universalis is disabled or unavailable.
+            // sell/price confidence, absorption cap, and the final rank. Enrichment also corrects the
+            // expected sell price to the outlier-robust recent-sale median. Degrades to velocity-only
+            // (depth = 0, PriceConfidence = 1, price unverified) when Universalis is unavailable.
             var warnings = await EnrichAndScoreAsync(opportunities, ct).ConfigureAwait(false);
+
+            // Re-apply the profit/ROI floors on the corrected prices so that opportunities whose
+            // Saddlebag average was an outlier-inflated fluke (real median far lower) are dropped
+            // rather than surfaced with a fake sell price.
+            opportunities = opportunities
+                .Where(opportunity => IsStillAdmissible(opportunity, configuration))
+                .ToList();
+
+            if (opportunities.Count == 0)
+                return (response, EmptyResult("No opportunities matched your current settings."));
 
             // Final ranking key = CapitalEfficiency × SellConfidence × PriceConfidence (criterion 3),
             // tiebroken by raw velocity, then ExpectedDailyProfit, then ascending CheapestPrice
@@ -267,6 +278,19 @@ public sealed class ScanEngine
         item.RoiPercent >= config.PreferredRoi &&
         item.SalesPerDay >= Math.Max(config.MinSalesPerDay, double.Epsilon);
 
+    // Re-check the profit and ROI floors after Universalis price correction. Velocity already
+    // passed in IsUsable and is unchanged, so only the price-derived floors are re-evaluated.
+    private static bool IsStillAdmissible(RankedOpportunity opportunity, Configuration config)
+    {
+        if (opportunity.HomePrice <= 0 || opportunity.PurchasePrice <= 0)
+            return false;
+        if (opportunity.ProfitPerUnit < config.MinProfitAmount || opportunity.ExpectedDailyProfit <= 0)
+            return false;
+
+        var roiPercent = (opportunity.ProfitPerUnit / (double)opportunity.PurchasePrice) * 100.0;
+        return roiPercent >= config.PreferredRoi;
+    }
+
     private static RankedOpportunity ToOpportunity(ScanItem item) => new()
     {
         ItemId = item.ItemId,
@@ -340,12 +364,33 @@ public sealed class ScanEngine
 
     // Computes confidence multipliers, absorption cap, and final rank for one opportunity. When
     // data is null (not enriched / degraded) depth = 0 and recent-sales count = 0, which yields
-    // SellConfidence = 1 and PriceConfidence = 1 — today's velocity-only behavior.
+    // SellConfidence = 1, PriceConfidence = 1, and an unverified price — today's velocity-only behavior.
     private void ApplyScoring(RankedOpportunity opportunity, UniversalisItemData? data)
     {
         var depth = data?.Depth ?? 0;
         var recentMedian = data?.RecentMedianSalePrice ?? 0.0;
         var recentCount = data?.RecentSalesCount ?? 0;
+
+        // Price correction: replace Saddlebag's outlier-prone average with the recent-sale median
+        // when there are enough recent home-world sales, and recompute the price-derived numbers.
+        // A single 1M-gil misclick sale can't move the median, so fluke flips collapse to reality.
+        var (sellPrice, verified) = OpportunityScoring.ResolveSellPrice(
+            opportunity.HomePrice,
+            recentMedian,
+            recentCount,
+            configuration.MinRecentSalesToJudge);
+        opportunity.PriceVerified = verified;
+        if (verified && sellPrice != opportunity.HomePrice)
+        {
+            opportunity.HomePrice = sellPrice;
+            opportunity.ProfitPerUnit = OpportunityScoring.NetProfitPerUnit(sellPrice, opportunity.PurchasePrice);
+            var dailyProfit = opportunity.ProfitPerUnit > 0 && opportunity.SalesPerDay > 0
+                ? opportunity.ProfitPerUnit * opportunity.SalesPerDay
+                : 0.0;
+            opportunity.ExpectedDailyProfit = dailyProfit >= int.MaxValue ? int.MaxValue : (int)dailyProfit;
+            opportunity.CapitalEfficiency = OpportunityScoring.CapitalEfficiency(
+                opportunity.ProfitPerUnit, opportunity.PurchasePrice, opportunity.SalesPerDay);
+        }
 
         var expectedDemand = OpportunityScoring.ExpectedDemand(opportunity.SalesPerDay, configuration.HoldingWindowDays);
 
